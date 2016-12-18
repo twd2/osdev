@@ -1,0 +1,38 @@
+clear_screen:
+  mov ecx, 80 * 25 * 2
+  mov edx, 0x000B8000
+  _loop_cls:
+    mov [edx], dword 0
+    add edx, 4
+    sub ecx, 4
+    test ecx, ecx
+  jnz _loop_cls
+  ret
+
+print_hex: ; value = eax, addr = edx
+  push ebx
+  push edx
+
+  mov cl, 28
+  mov [edx], dword 0x07780730 ; '0x'
+  add edx, 4
+
+  _loop:
+    mov ebx, eax
+    shr ebx, cl
+    and bl, 0x0F
+    add bl, 0x30 ; '0'
+    cmp bl, 0x39
+    jbe _no_add
+      add bl, 0x40 - 0x39 ; 'A' - '0'
+    _no_add:
+    mov bh, 0x07 ; format
+    mov [edx], bx
+    sub cl, 4 ; 4 bits
+    add edx, 2 ; 2 bytes
+    cmp cl, 0
+  jge _loop
+
+  pop edx
+  pop ebx
+  ret
