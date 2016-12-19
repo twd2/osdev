@@ -62,5 +62,4 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
 void int_handler()
 {
     kprint("on interrupt\n");
-    for (;;);
 }

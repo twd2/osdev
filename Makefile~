@@ -33,10 +33,6 @@ os.iso: kernel.elf iso/boot/grub/grub.cfg
 run: os.iso
 	qemu-system-x86_64 -s -cdrom os.iso -m 1024
 
-.PHONY: debug
-debug: os.iso
-	bochs -f bochsrc
-
 .PHONY: clean
 clean:
 	-rm *.o

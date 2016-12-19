@@ -48,7 +48,6 @@ _start_kernel:
   cli
   lidt [idtptr]
   sti
-  int 0x0
   jmp $
   ; enter ring3
   ; 1. load tss

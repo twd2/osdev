@@ -31,9 +31,4 @@ SECTIONS
   {
     *(.gdt32)
   }
-
-  .idt ALIGN(4K):
-  {
-    *(.idt)
-  }
 }

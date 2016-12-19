@@ -29,7 +29,6 @@ void kput_char(char ch);
 int kprint(char *str);
 int kprint_int(int x);
 int kprint_hex(int x);
-int kprint_bin(int x);
 void set_char(int x, int y, char ch, unsigned char color);
 void set_string(int x_offset, int y_offset, int width, char *str, unsigned char color);
 void scroll();
