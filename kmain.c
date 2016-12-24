@@ -1,10 +1,8 @@
 #include <multiboot.h>
 #include <screen.h>
 #include <rdtsc.h>
-#include <tss.h>
-
-extern tss_entry_t tss_ptr;
-extern descriptor_entry_t gdt32_tss;
+#include <pm.h>
+#include <asm.h>
 
 void delay(int x)
 {
@@ -46,7 +44,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     kprint((char *)mb_info->cmdline);
     kprint("\"\n");
     
-    set_string(10, 5, 7, "hello, world!", SCREEN_COLOR_DEFAULT);
+    set_string(10, 10, 7, "hello, world!", SCREEN_COLOR_DEFAULT);
     for (;;);
     char c = 0x07;
     while (1)
@@ -57,10 +55,4 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         kprint("hello, world");
     }
     return 0;
-}
-
-void int_handler()
-{
-    kprint("on interrupt\n");
-    for (;;);
 }

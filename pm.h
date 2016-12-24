@@ -1,5 +1,5 @@
-#ifndef _WDOS_TSS_H_
-#define _WDOS_TSS_H_
+#ifndef _WDOS_PM_H_
+#define _WDOS_PM_H_
 
 #include <runtime/types.h>
 
@@ -37,14 +37,14 @@ typedef struct descriptor_entry
     uint8_t base3;
 } descriptor_entry_t;
 
-typedef struct idt_descriptor_entry
+typedef struct gate_entry
 {
     uint16_t offset1;  // offset bits 0..15
     uint16_t selector; // a code segment selector in GDT or LDT
     uint8_t zero;      // unused, set to 0
     uint8_t type_attr; // type and attributes, see below
     uint16_t offset2;  // offset bits 16..31
-} idt_descriptor_entry_t;
+} gate_entry_t;
 
 typedef struct tss_entry
 {
@@ -78,8 +78,8 @@ typedef struct tss_entry
 } tss_entry_t;
 
 void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr);
-void fill_idt_descriptor(idt_descriptor_entry_t *ptr, uint16_t selector, uint32_t offset);
+void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr);
 void prepare_tss_gdt_entry();
 void prepare_idt();
 
-#endif // _WDOS_TSS_H_
+#endif // _WDOS_PM_H_

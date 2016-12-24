@@ -1,4 +1,4 @@
-CFLAGS = -m32 -fno-stack-protector -fno-builtin -nostdlib -nostdinc -Wall -Wextra -I.
+CFLAGS = -g -m32 -fno-stack-protector -fno-builtin -nostdlib -nostdinc -Wall -Wextra -I.
 ASFLAGS = -felf32
 LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 
@@ -18,10 +18,13 @@ kmain.o: kmain.c
 screen.o: screen.c
 	gcc $(CFLAGS) -c $^
 
-tss.o: tss.c
+pm.o: pm.c
 	gcc $(CFLAGS) -c $^
 
-kernel.elf: loader.o kmain.o screen.o rdtsc.o tss.o
+interrupt.o: interrupt.c
+	gcc $(CFLAGS) -c $^
+
+kernel.elf: loader.o kmain.o screen.o rdtsc.o pm.o interrupt.o
 	ld $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf iso/boot/grub/grub.cfg

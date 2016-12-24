@@ -31,3 +31,12 @@ DESCRIPTOR_ATTR_INTG equ (DESCRIPTOR_ATTR_PRESENT | 0xE) ; type 0xE 386 interrup
   dw ((%2 >> 8) & 0x0F00) | (%3 & 0xF0FF) ; attr 1, limit 2, attr 2
   db (%1 >> 24) & 0xFF ; base 2
 %endmacro
+
+; gate selector, offset, attr
+%macro gate 3
+  dw %2 & 0xFFFF ; offset 1
+  dw %1 ; selector
+  db 0 ; zero
+  db %3 ; attr
+  dw (%2 >> 16) & 0xFFFF ; offset 2
+%endmacro
