@@ -13,5 +13,9 @@ extern const uint16_t SELECTOR_KERNEL_DATA;
 extern const uint16_t SELECTOR_USER_CODE;
 extern const uint16_t SELECTOR_USER_DATA;
 extern const uint16_t SELECTOR_TSS;
+extern const uint32_t TSS_LENGTH;
+
+void enter_ring3();
+uint32_t get_eflags();
 
 #endif // _WDOS_ASM_H_

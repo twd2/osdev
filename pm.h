@@ -18,6 +18,7 @@
 #define SELECTOR_LDT (1 << 2)
 #define SELECTOR_RPL0 (0 << 0)
 #define SELECTOR_RPL3 (3 << 0)
+#define SELECTOR_RPL_MASK (0b11)
 
 #define DESCRIPTOR_ATTR_CODE32 (DESCRIPTOR_ATTR_PRESENT | DESCRIPTOR_ATTR_DB | \
                                 DESCRIPTOR_ATTR_SEG | DESCRIPTOR_ATTR_EX | \
@@ -35,7 +36,7 @@ typedef struct descriptor_entry
     uint8_t base2;
     uint16_t attr1_limit2_attr2;
     uint8_t base3;
-} descriptor_entry_t;
+} __attribute__((packed)) descriptor_entry_t;
 
 typedef struct gate_entry
 {
@@ -44,7 +45,7 @@ typedef struct gate_entry
     uint8_t zero;      // unused, set to 0
     uint8_t type_attr; // type and attributes, see below
     uint16_t offset2;  // offset bits 16..31
-} gate_entry_t;
+} __attribute__((packed)) gate_entry_t;
 
 typedef struct tss_entry
 {
@@ -75,7 +76,7 @@ typedef struct tss_entry
     uint32_t ldt;      
     uint16_t trap;
     uint16_t iomap_base;
-} tss_entry_t;
+} __attribute__((packed)) tss_entry_t;
 
 void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr);
 void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr);

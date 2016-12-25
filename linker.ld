@@ -27,13 +27,8 @@ SECTIONS
     *(.bss)
   }
 
-  .gdt32 ALIGN(4K):
+  .pm ALIGN(4K):
   {
-    *(.gdt32)
-  }
-
-  .idt ALIGN(4K):
-  {
-    *(.idt)
+    *(.pm)
   }
 }

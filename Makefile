@@ -1,4 +1,9 @@
-CFLAGS = -g -m32 -fno-stack-protector -fno-builtin -nostdlib -nostdinc -Wall -Wextra -I.
+CC = gcc
+AS = nasm
+LD = ld
+
+CFLAGS = -g -m32 -fno-stack-protector -fno-builtin -fno-asynchronous-unwind-tables \
+         -nostdlib -nostdinc -Wall -Wextra -I.
 ASFLAGS = -felf32
 LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 
@@ -7,25 +12,40 @@ all: os.iso
 	
 
 loader.o: loader.asm
-	nasm $(ASFLAGS) $^ -o $@
-
-rdtsc.o: rdtsc.asm
-	nasm $(ASFLAGS) $^ -o $@
+	$(AS) $(ASFLAGS) $^ -o $@
 
 kmain.o: kmain.c
-	gcc $(CFLAGS) -c $^
+	$(CC) $(CFLAGS) -c $^ -o $@
 
-screen.o: screen.c
-	gcc $(CFLAGS) -c $^
+kstdio.o: kstdio.c
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 pm.o: pm.c
-	gcc $(CFLAGS) -c $^
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 interrupt.o: interrupt.c
-	gcc $(CFLAGS) -c $^
+	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: loader.o kmain.o screen.o rdtsc.o pm.o interrupt.o
-	ld $(LDFLAGS) $^ -o $@
+syscall.o: syscall.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+io.o: io.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+process.o: process.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+driver/8259a.o: driver/8259a.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+driver/clock.o: driver/clock.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+stdlib/memory.o: stdlib/memory.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+kernel.elf: loader.o kmain.o kstdio.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o stdlib/memory.o
+	$(LD) $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf iso/boot/grub/grub.cfg
 	cp kernel.elf iso/boot
@@ -40,8 +60,15 @@ run: os.iso
 debug: os.iso
 	bochs -f bochsrc
 
+.PHONY: gdb
+gdb:
+	gdb -x gdb_remote
+
 .PHONY: clean
 clean:
 	-rm *.o
 	-rm *.elf
 	-rm *.iso
+	-rm driver/*.o
+	-rm stdlib/*.o
+	

@@ -1,14 +1,19 @@
-#ifndef _WDOS_INTERRUPT_H_
-#define _WDOS_INTERRUPT_H_
+#ifndef _WDOS_KERNEL_INTERRUPT_H_
+#define _WDOS_KERNEL_INTERRUPT_H_
 
 #include <runtime/types.h>
 
 typedef struct interrupt_frame
 {
+    uint32_t isr_esp; // esp of interrupt_wrapper
+    uint32_t gs;
+    uint32_t fs;
+    uint32_t es;
+    uint32_t ds;
     uint32_t edi;
     uint32_t esi;
     uint32_t ebp;
-    uint32_t esp_;
+    uint32_t _; // unused
     uint32_t ebx;
     uint32_t edx;
     uint32_t ecx;
@@ -19,24 +24,41 @@ typedef struct interrupt_frame
     uint32_t eflags;
     uint32_t esp;
     uint32_t ss;
-} interrupt_frame_t;
+} __attribute__((packed)) interrupt_frame_t;
 
-#define IRQ0 (0x20)
-#define IRQ1 (IRQ0 + 1)
-#define IRQ2 (IRQ0 + 2)
-#define IRQ3 (IRQ0 + 3)
-#define IRQ4 (IRQ0 + 4)
-#define IRQ5 (IRQ0 + 5)
-#define IRQ6 (IRQ0 + 6)
-#define IRQ7 (IRQ0 + 7)
-#define IRQ8 (0x70)
-#define IRQ9 (IRQ8 + 1)
-#define IRQ10 (IRQ8 + 2)
-#define IRQ11 (IRQ8 + 3)
-#define IRQ12 (IRQ8 + 4)
-#define IRQ13 (IRQ8 + 5)
-#define IRQ14 (IRQ8 + 6)
-#define IRQ15 (IRQ8 + 7)
+#define SECOND_REGISTER gs
+
+#define INTERRUPT_VECTOR_IRQ0 (0x20)
+#define INTERRUPT_VECTOR_IRQ1 (INTERRUPT_VECTOR_IRQ0 + 1)
+#define INTERRUPT_VECTOR_IRQ2 (INTERRUPT_VECTOR_IRQ0 + 2)
+#define INTERRUPT_VECTOR_IRQ3 (INTERRUPT_VECTOR_IRQ0 + 3)
+#define INTERRUPT_VECTOR_IRQ4 (INTERRUPT_VECTOR_IRQ0 + 4)
+#define INTERRUPT_VECTOR_IRQ5 (INTERRUPT_VECTOR_IRQ0 + 5)
+#define INTERRUPT_VECTOR_IRQ6 (INTERRUPT_VECTOR_IRQ0 + 6)
+#define INTERRUPT_VECTOR_IRQ7 (INTERRUPT_VECTOR_IRQ0 + 7)
+#define INTERRUPT_VECTOR_IRQ8 (0x28)
+#define INTERRUPT_VECTOR_IRQ9 (INTERRUPT_VECTOR_IRQ8 + 1)
+#define INTERRUPT_VECTOR_IRQ10 (INTERRUPT_VECTOR_IRQ8 + 2)
+#define INTERRUPT_VECTOR_IRQ11 (INTERRUPT_VECTOR_IRQ8 + 3)
+#define INTERRUPT_VECTOR_IRQ12 (INTERRUPT_VECTOR_IRQ8 + 4)
+#define INTERRUPT_VECTOR_IRQ13 (INTERRUPT_VECTOR_IRQ8 + 5)
+#define INTERRUPT_VECTOR_IRQ14 (INTERRUPT_VECTOR_IRQ8 + 6)
+#define INTERRUPT_VECTOR_IRQ15 (INTERRUPT_VECTOR_IRQ8 + 7)
+
+#define INTERRUPT_VECTOR_SYSCALL (0x80)
+
+#define IRQ_TIME 0
+#define IRQ_KEYBOARD 1
+#define IRQ_COM2 3
+#define IRQ_COM1 4
+#define IRQ_LPT1 5
+#define IRQ_FDD 6
+#define IRQ_LPT2 7
+#define IRQ_CMOSALTER 8
+#define IRQ_MOUSE 12
+#define IRQ_FPU 13
+#define IRQ_IDE0 14
+#define IRQ_IDE1 15
 
 void interrupt_wrapper_0();
 void interrupt_wrapper_1();
@@ -70,6 +92,7 @@ void interrupt_wrapper_28();
 void interrupt_wrapper_29();
 void interrupt_wrapper_30();
 void interrupt_wrapper_31();
+
 void interrupt_wrapper_32();
 void interrupt_wrapper_33();
 void interrupt_wrapper_34();
@@ -78,15 +101,25 @@ void interrupt_wrapper_36();
 void interrupt_wrapper_37();
 void interrupt_wrapper_38();
 void interrupt_wrapper_39();
-void interrupt_wrapper_112();
-void interrupt_wrapper_113();
-void interrupt_wrapper_114();
-void interrupt_wrapper_115();
-void interrupt_wrapper_116();
-void interrupt_wrapper_117();
-void interrupt_wrapper_118();
-void interrupt_wrapper_119();
-void interrupt_wrapper_128();
-void interrupt_handler(uint32_t i, interrupt_frame_t frame);
+void interrupt_wrapper_40();
+void interrupt_wrapper_41();
+void interrupt_wrapper_42();
+void interrupt_wrapper_43();
+void interrupt_wrapper_44();
+void interrupt_wrapper_45();
+void interrupt_wrapper_46();
+void interrupt_wrapper_47();
 
-#endif // _WDOS_INTERRUPT_H_
+void interrupt_wrapper_128();
+
+extern const char *cpu_exception_strings[32];
+
+typedef void (*irq_handler_t)(uint8_t, interrupt_frame_t*);
+
+void interrupt_handler(uint8_t vec, interrupt_frame_t frame);
+void irq_dispatch(uint8_t irq, interrupt_frame_t *frame);
+void register_irq_handler(uint8_t irq, irq_handler_t handler);
+void enable_interrupt();
+void disable_interrupt();
+
+#endif // _WDOS_KERNEL_INTERRUPT_H_

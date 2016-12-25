@@ -22,7 +22,7 @@ void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t at
 
 void prepare_tss_gdt_entry()
 {
-    fill_descriptor(&gdt32_tss, (uint32_t)&tss_ptr, sizeof(tss_entry_t),
+    fill_descriptor(&gdt32_tss, (uint32_t)&tss_ptr, TSS_LENGTH - 1,
                     DESCRIPTOR_ATTR_TSS | DESCRIPTOR_ATTR_DPL3);
 }
 
@@ -108,22 +108,23 @@ void prepare_idt()
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
     fill_gate(&idt_ptr[39], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_39,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[112], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_112,
+    fill_gate(&idt_ptr[40], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_40,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[113], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_113,
+    fill_gate(&idt_ptr[41], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_41,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[114], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_114,
+    fill_gate(&idt_ptr[42], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_42,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[115], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_115,
+    fill_gate(&idt_ptr[43], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_43,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[116], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_116,
+    fill_gate(&idt_ptr[44], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_44,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[117], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_117,
+    fill_gate(&idt_ptr[45], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_45,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[118], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_118,
+    fill_gate(&idt_ptr[46], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_46,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
-    fill_gate(&idt_ptr[119], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_119,
+    fill_gate(&idt_ptr[47], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_47,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL0);
+
     fill_gate(&idt_ptr[128], SELECTOR_KERNEL_CODE, (uint32_t)&interrupt_wrapper_128,
               DESCRIPTOR_ATTR_INTG | DESCRIPTOR_ATTR_DPL3);
 }
