@@ -17,7 +17,7 @@ uint32_t get_pid()
 
 void init_process()
 {
-    register_irq_handler(IRQ_TIME, &process_irq_handler);
+    register_irq_handler(IRQ_CLOCK, &process_irq_handler);
 }
 
 #define MOVE_REGISTERS(dest, src) \

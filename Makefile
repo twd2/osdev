@@ -41,10 +41,13 @@ driver/8259a.o: driver/8259a.c
 driver/clock.o: driver/clock.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
+driver/keyboard.o: driver/keyboard.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 stdlib/memory.o: stdlib/memory.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: loader.o kmain.o kstdio.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o stdlib/memory.o
+kernel.elf: loader.o kmain.o kstdio.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o stdlib/memory.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf iso/boot/grub/grub.cfg

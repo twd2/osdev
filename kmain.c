@@ -5,6 +5,8 @@
 #include <syscall.h>
 #include <interrupt.h>
 #include <driver/8259a.h>
+#include <driver/clock.h>
+#include <driver/keyboard.h>
 #include <process.h>
 
 static uint8_t process_stack[0x2000];
@@ -33,12 +35,13 @@ void process1()
     uint8_t i = 0;
     while (true)
     {
+        asm("hlt");
         enter_kstdio();
         kprint("A");
         kprint_int(++i);
         kprint(" ");
         leave_kstdio();
-        delay(10);
+        delay(1);
     }
 }
 
@@ -61,7 +64,7 @@ void process2()
         kprint_int(++i);
         kprint(" ");
         leave_kstdio();
-        delay(20);
+        delay(2);
     }
 }
 
@@ -103,6 +106,9 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     
     kprint_ok_fail("[KDEBUG] init PIT 8253", true);
     init_clock();
+
+    kprint_ok_fail("[KDEBUG] init keyboard", true);
+    init_keyboard();
 
     kprint_ok_fail("[KDEBUG] init process scheduler", true);
     init_process();

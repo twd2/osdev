@@ -19,6 +19,6 @@
 #define IRQ_FREQ 100 // Hz
 
 void init_clock();
-void set_interval(uint32_t interval);
+void set_freq(uint32_t interval);
 
 #endif // _WDOS_KERNEL_DRIVER_CLOCK_H_

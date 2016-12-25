@@ -168,6 +168,7 @@ uint32_t kprint_ok_fail(const char *str, bool ok)
     }
     current_color = old_color;
     kprint("]");
+    return KSTDIO_WIDTH;
 }
 
 void set_char(uint8_t x, uint8_t y, char ch, uint8_t color)

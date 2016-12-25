@@ -127,12 +127,6 @@ inline void irq_dispatch(uint8_t irq, interrupt_frame_t *frame)
 {
     if (irq_handlers[irq])
     {
-        if (irq >= 1)
-        {
-            kprint("[KDEBUG] Handling IRQ #");
-            kprint_int(irq);
-            kprint("\n");
-        }
         irq_handlers[irq](irq, frame);
     }
     else

@@ -47,7 +47,7 @@ typedef struct interrupt_frame
 
 #define INTERRUPT_VECTOR_SYSCALL (0x80)
 
-#define IRQ_TIME 0
+#define IRQ_CLOCK 0
 #define IRQ_KEYBOARD 1
 #define IRQ_COM2 3
 #define IRQ_COM1 4
