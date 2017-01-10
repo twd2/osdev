@@ -11,7 +11,7 @@ static uint8_t right_alt_down_count = 0;
 
 void init_keyboard()
 {
-    register_irq_handler(IRQ_KEYBOARD, heyboard_irq_handler);
+    register_irq_handler(IRQ_KEYBOARD, keyboard_irq_handler);
 }
 
 inline uint8_t keyboard_read()
@@ -19,7 +19,7 @@ inline uint8_t keyboard_read()
     return inb(KEYBOARD_BUFFER);
 }
 
-void heyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
+void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
     uint8_t scancode = keyboard_read();
     kprint_hex(scancode);

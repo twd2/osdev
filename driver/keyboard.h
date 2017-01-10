@@ -8,6 +8,6 @@
 
 void init_keyboard();
 uint8_t keyboard_read();
-void heyboard_irq_handler(uint8_t, interrupt_frame_t*);
+void keyboard_irq_handler(uint8_t, interrupt_frame_t*);
 
 #endif // _WDOS_KERNEL_DRIVER_KEYBOARD_H_
