@@ -9,6 +9,9 @@
 #include <driver/keyboard.h>
 #include <process.h>
 
+extern uint8_t end_of_kernel;
+void *free_mem_start = &end_of_kernel;
+void *free_mem_end = NULL;
 static uint8_t process_stack[0x2000];
 
 void delay(int x)
@@ -68,6 +71,38 @@ void process2()
     }
 }
 
+void print_multiboot_info(int mb_magic, multiboot_info_t *mb_info)
+{
+    kprint("[KDEBUG] ====multiboot header====\n");
+    kprint("-> magic=");
+    kprint_hex(mb_magic);
+    kprint(", mb_info at ");
+    kprint_hex(mb_info);
+    kprint(",\n-> flags=");
+    kprint_bin(mb_info->flags);
+    kprint(",\n-> mem_lower=");
+    kprint_int(mb_info->mem_lower);
+    kprint(" KiB, mem_upper=");
+    kprint_int(mb_info->mem_upper);
+    kprint(" KiB, boot_device=");
+    kprint_hex(mb_info->boot_device);
+    kprint(",\n-> cmdline at ");
+    kprint_hex(mb_info->cmdline);
+    kprint(", cmdline=\"");
+    kprint((char *)mb_info->cmdline);
+    kprint("\"\n");
+}
+
+void print_mem_info()
+{
+    kprint("[KDEBUG] ====system memory info====\n");
+    kprint("-> free_mem_start=");
+    kprint_hex(free_mem_start);
+    kprint(", free_mem_end=");
+    kprint_hex(free_mem_end);
+    kprint("\n");
+}
+
 int kmain(int mb_magic, multiboot_info_t *mb_info)
 {
     if (mb_magic != MULTIBOOT_BOOTLOADER_MAGIC)
@@ -83,23 +118,13 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         return 0xdeadbeef;
     }
 
+    free_mem_end = mb_info->mem_upper << 10;
+
     cls();
 
     kprint_ok_fail("[KDEBUG] system booted successfully.", true);
-    kprint("[KDEBUG] ====multiboot header====\n");
-    kprint("-> magic=");
-    kprint_hex(mb_magic);
-    kprint(", flags=");
-    kprint_bin(mb_info->flags);
-    kprint(",\n-> mem_lower=");
-    kprint_int(mb_info->mem_lower);
-    kprint(" KiB, mem_upper=");
-    kprint_int(mb_info->mem_upper);
-    kprint(" KiB, boot_device=");
-    kprint_hex(mb_info->boot_device);
-    kprint(",\n-> cmdline=\"");
-    kprint((char *)mb_info->cmdline);
-    kprint("\"\n");
+    print_multiboot_info(mb_magic, mb_info);
+    print_mem_info();
 
     kprint_ok_fail("[KDEBUG] init PIC 8259a", true);
     init_8259a();
@@ -116,11 +141,11 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     uint32_t kpid = process_create("kernel", SELECTOR_KERNEL_CODE, &process1,
                                    SELECTOR_KERNEL_DATA, &process_stack[0x1000]);
     kprint_ok_fail("[KDEBUG] create kernel process", kpid != (uint32_t)-1);
-    uint32_t ipid = process_create("kernel", SELECTOR_USER_CODE, &process2,
+    uint32_t ipid = process_create("init", SELECTOR_USER_CODE, &process2,
                                    SELECTOR_USER_DATA, &process_stack[0x2000]);
     kprint_ok_fail("[KDEBUG] create init process", kpid != (uint32_t)-1);
 
-    enable_interrupt();
+    //enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
 
     // will not reach here
