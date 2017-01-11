@@ -2,7 +2,7 @@
 #include <asm.h>
 #include <pm.h>
 #include <interrupt.h>
-#include <kstdio.h>
+#include <tty.h>
 #include <stdlib/memory.h>
 
 static process_t processes[16];
@@ -18,6 +18,18 @@ uint32_t get_pid()
 void init_process()
 {
     register_irq_handler(IRQ_CLOCK, &process_irq_handler);
+}
+
+process_t *process_current()
+{
+    if (current_process != -1)
+    {
+        return &processes[current_process];
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 #define MOVE_REGISTERS(dest, src) \
@@ -124,6 +136,7 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
     process_t *proc = &processes[process_count];
     ++process_count;
     strcpy(proc->name, name);
+    proc->tty = tty_current_screen();
     proc->registers.cs = entry_point_seg;
     proc->registers.eip = (uint32_t)entry_point;
     proc->registers.ss = stack_seg;

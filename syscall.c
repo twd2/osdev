@@ -54,6 +54,11 @@ uint32_t syscall5(uint32_t id, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
     return ret;
 }
 
+void sys_exit(int exitcode)
+{
+    syscall1(SYS_exit, exitcode);
+}
+
 int sys_test()
 {
     return (int)syscall0(SYS_test);

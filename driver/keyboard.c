@@ -1,6 +1,6 @@
 #include "keyboard.h"
 #include <io.h>
-#include <kstdio.h>
+#include <tty.h>
 
 static uint8_t left_shift_down_count = 0;
 static uint8_t right_shift_down_count = 0;
@@ -22,8 +22,8 @@ inline uint8_t keyboard_read()
 void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
     uint8_t scancode = keyboard_read();
-    kprint_hex(scancode);
-    kprint(" ");
+    //kprint_hex(scancode);
+    //kprint(" ");
     // TODO: extend code
     switch (scancode)
     {
@@ -56,6 +56,15 @@ void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
         {
             asm("ud2");
         }
+        break;
+    case 0x3b: // F1 make
+        tty_switch(default_tty + 0);
+        break;
+    case 0x3c: // F2 make
+        tty_switch(default_tty + 1);
+        break;
+    case 0x3d: // F3 make
+        tty_switch(default_tty + 2);
         break;
     default:
         break;

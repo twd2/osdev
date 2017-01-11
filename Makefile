@@ -17,7 +17,7 @@ loader.o: loader.asm
 kmain.o: kmain.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kstdio.o: kstdio.c
+tty.o: tty.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 pm.o: pm.c
@@ -44,10 +44,13 @@ driver/clock.o: driver/clock.c
 driver/keyboard.o: driver/keyboard.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
+driver/vga.o: driver/vga.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 stdlib/memory.o: stdlib/memory.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o kstdio.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o stdlib/memory.o
+kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf iso/boot/grub/grub.cfg

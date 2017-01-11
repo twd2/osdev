@@ -1,5 +1,5 @@
 #include <interrupt.h>
-#include <kstdio.h>
+#include <tty.h>
 #include <driver/8259a.h>
 #include <process.h>
 
@@ -64,8 +64,8 @@ void interrupt_handler(uint8_t vec, interrupt_frame_t frame)
     }
     else if (vec < 32) // cpu exception
     {
-        cls_color(KSTDIO_MKCOLOR(KSTDIO_COLOR_LIGHTGREY, KSTDIO_COLOR_RED));
-        kset_color(KSTDIO_MKCOLOR(KSTDIO_COLOR_LIGHTGREY, KSTDIO_COLOR_RED));
+        kfill_color(TTY_MKCOLOR(TTY_COLOR_LIGHTGREY, TTY_COLOR_RED));
+        kset_color(TTY_MKCOLOR(TTY_COLOR_LIGHTGREY, TTY_COLOR_RED));
         kprint("[pid=");
         kprint_int(get_pid());
         kprint("] Exception #");

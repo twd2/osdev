@@ -13,9 +13,11 @@ uint32_t syscall4(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 uint32_t syscall5(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 uint32_t syscall6(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
+#define SYS_exit 0
 #define SYS_test 1
 #define SYS_add 2
 
+int sys_exit(int);
 int sys_test();
 int sys_add(int, int);
 
