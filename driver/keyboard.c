@@ -22,8 +22,11 @@ inline uint8_t keyboard_read()
 void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
     uint8_t scancode = keyboard_read();
-    //kprint_hex(scancode);
-    //kprint(" ");
+    tty_set_current(default_tty);
+    kprint("[KEYBOARD] ");
+    kprint_hex(scancode);
+    kprint("\n");
+    tty_set_current(NULL);
     // TODO: extend code
     switch (scancode)
     {
@@ -57,16 +60,11 @@ void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
             asm("ud2");
         }
         break;
-    case 0x3b: // F1 make
-        tty_switch(default_tty + 0);
-        break;
-    case 0x3c: // F2 make
-        tty_switch(default_tty + 1);
-        break;
-    case 0x3d: // F3 make
-        tty_switch(default_tty + 2);
-        break;
     default:
+        if (0x3b <= scancode && scancode <= 0x3b + 7)
+        {
+            tty_switch(default_tty + scancode - 0x3b);
+        }
         break;
     }
 }

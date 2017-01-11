@@ -12,7 +12,7 @@
 extern uint8_t end_of_kernel;
 void *free_mem_start = &end_of_kernel;
 void *free_mem_end = NULL;
-static uint8_t process_stack[0x2000];
+static uint8_t process_stack[0x3000];
 
 void delay(int x)
 {
@@ -77,6 +77,17 @@ void process2()
         //delay(2);
     }
     // TODO: sys_exit
+}
+
+void process3()
+{
+    kprint("My PID=");
+    kprint_int(get_pid());
+    kprint("\nThis is tty 3.\n");
+    while (true)
+    {
+        sys_yield();
+    }
 }
 
 void print_multiboot_info(int mb_magic, multiboot_info_t *mb_info)
@@ -147,13 +158,17 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     kprint_ok_fail("[KDEBUG] init process scheduler", true);
     init_process();
 
+    tty_switch(default_tty + 1);
     uint32_t kpid = process_create("kernel", SELECTOR_KERNEL_CODE, &process1,
                                    SELECTOR_KERNEL_DATA, &process_stack[0x1000]);
     kprint_ok_fail("[KDEBUG] create kernel process", kpid != (uint32_t)-1);
-    tty_switch(default_tty + 1);
+    tty_switch(default_tty + 2);
     uint32_t ipid = process_create("init", SELECTOR_USER_CODE, &process2,
                                    SELECTOR_USER_DATA, &process_stack[0x2000]);
     kprint_ok_fail("[KDEBUG] create init process", kpid != (uint32_t)-1);
+    tty_switch(default_tty + 3);
+    uint32_t spid = process_create("shell", SELECTOR_USER_CODE, &process3,
+                                   SELECTOR_USER_DATA, &process_stack[0x3000]);
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
 

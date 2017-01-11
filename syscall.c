@@ -68,3 +68,8 @@ int sys_add(int a, int b)
 {
     return (int)syscall2(SYS_add, (uint32_t)a, (uint32_t)b);
 }
+
+void sys_yield()
+{
+    syscall0(SYS_yield);
+}

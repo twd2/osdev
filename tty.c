@@ -6,7 +6,8 @@
 
 static tty_t ttys[TTY_COUNT];
 tty_t *const default_tty = &ttys[0];
-static tty_t *current_tty;
+static tty_t *current_screen;
+static tty_t *current_tty = NULL;
 
 void init_tty()
 {
@@ -21,11 +22,15 @@ void init_tty()
 
 tty_t *tty_current_screen()
 {
-    return current_tty;
+    return current_screen;
 }
 
 tty_t *tty_current_process()
 {
+    if (current_tty)
+    {
+        return current_tty;
+    }
     process_t *current_process = process_current();
     if (current_process)
     {
@@ -59,14 +64,19 @@ void tty_leave(tty_t *tty)
 
 void tty_switch(tty_t *tty)
 {
-    current_tty = tty;
+    current_screen = tty;
     vga_set_start_address(tty->mem);
     tty_update_cursor_location();
 }
 
+void tty_set_current(tty_t *tty)
+{
+    current_tty = tty;
+}
+
 void tty_update_cursor_location()
 {
-    vga_set_cursor_location(current_tty->x, current_tty->y);
+    vga_set_cursor_location(current_screen->x, current_screen->y);
 }
 
 void tty_clear(tty_t *tty)
@@ -82,7 +92,7 @@ void tty_fill_color(tty_t *tty, uint8_t color)
         gm_int[i] = 0x00200020 | ((uint32_t)color << 24) | ((uint32_t)color << 8);
     }
     tty->x = tty->y = 0;
-    /* TODO if (tty == current_tty)
+    /* TODO if (tty == current_screen)
     {
         tty_update_cursor_location();
     }*/
@@ -150,7 +160,7 @@ uint32_t tty_print(tty_t *tty, const char *str)
             }
         }
     }
-    /* TODO if (tty == current_tty)
+    /* TODO if (tty == current_screen)
     {
         tty_update_cursor_location();
     }*/

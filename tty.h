@@ -44,6 +44,7 @@ void tty_init(tty_t *tty);
 void tty_enter(tty_t *tty);
 void tty_leave(tty_t *tty);
 void tty_switch(tty_t *tty);
+void tty_set_current(tty_t *tty);
 void tty_update_cursor_location();
 void tty_clear(tty_t *tty);
 void tty_fill_color(tty_t *tty, uint8_t color);

@@ -3,7 +3,7 @@
 #include <driver/8259a.h>
 #include <process.h>
 
-const char *cpu_exception_strings[32] = 
+const char *const cpu_exception_strings[INTERRUPT_EXCEPTION_COUNT] =
 {
     "#DE Divide-by-zero Error",
     "#DB Debug",
@@ -39,31 +39,43 @@ const char *cpu_exception_strings[32] =
     "--- [Reserved]",
 };
 
-static irq_handler_t irq_handlers[16] = { NULL };
+static irq_handler_t irq_handlers[INTERRUPT_VECTOR_IRQ_COUNT] = { NULL };
 
 void interrupt_handler(uint8_t vec, interrupt_frame_t frame)
 {
-    if (vec == 0x80)
+    if (vec == INTERRUPT_VECTOR_SYSCALL)
     {
-        kprint("[KDEBUG] Interrupt: system call #");
-        kprint_int(frame.eax);
-        kprint("\n");
         // TODO
-        if (frame.eax == 1) // test
+        if (frame.eax == 0) // exit
+        {
+            
+        }
+        else if (frame.eax == 1) // test
         {
             frame.eax = 0x900dbeef;
         }
-        else if (frame.eax == 2)
+        else if (frame.eax == 2) // add
         {
             frame.eax = frame.ebx + frame.ecx;
+        }
+        else if (frame.eax == 3) // yield
+        {
+            irq_handlers[0](0, &frame);
         }
         else
         {
             frame.eax = 0xdeadbeef;
+            tty_set_current(default_tty);
+            kprint("[KDEBUG] Interrupt: system call #");
+            kprint_int(frame.eax);
+            kprint("\n");
+            tty_set_current(NULL);
         }
     }
-    else if (vec < 32) // cpu exception
+    else if (vec < INTERRUPT_EXCEPTION_COUNT) // cpu exception
     {
+        tty_switch(default_tty);
+        tty_set_current(default_tty);
         kfill_color(TTY_MKCOLOR(TTY_COLOR_LIGHTGREY, TTY_COLOR_RED));
         kset_color(TTY_MKCOLOR(TTY_COLOR_LIGHTGREY, TTY_COLOR_RED));
         kprint("[pid=");
@@ -133,9 +145,11 @@ inline void irq_dispatch(uint8_t irq, interrupt_frame_t *frame)
     {
         if (irq >= 1)
         {
+            tty_set_current(default_tty);
             kprint("[KDEBUG] No handler for IRQ #");
             kprint_int(irq);
             kprint("\n");
+            tty_set_current(NULL);
         }
     }
     send_eoi(irq);

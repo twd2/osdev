@@ -16,9 +16,11 @@ uint32_t syscall6(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, ui
 #define SYS_exit 0
 #define SYS_test 1
 #define SYS_add 2
+#define SYS_yield 3
 
-int sys_exit(int);
+void sys_exit(int);
 int sys_test();
 int sys_add(int, int);
+void sys_yield();
 
 #endif // _WDOS_SYSCALL_H_
