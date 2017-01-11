@@ -114,7 +114,7 @@ void interrupt_wrapper_47();
 
 void interrupt_wrapper_128();
 
-extern const char *cpu_exception_strings[32];
+extern const char *const cpu_exception_strings[32];
 
 typedef void (*irq_handler_t)(uint8_t, interrupt_frame_t*);
 
