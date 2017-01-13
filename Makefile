@@ -11,6 +11,12 @@ LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 all: os.iso
 	
 
+stage1: loader/stage1/boot.asm
+	$(AS) $^ -o $@
+	mv stage1 iso/boot/
+	mkisofs -o stage1.iso -b boot/stage1 -no-emul-boot -v iso
+	qemu-system-x86_64 -s -cdrom stage1.iso -m 1024
+
 loader.o: loader.asm
 	$(AS) $(ASFLAGS) $^ -o $@
 
