@@ -29,6 +29,8 @@
 *.app
 *.elf
 *.iso
+*.bin
 
+stage1
 bochsout.txt
 *~

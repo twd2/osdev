@@ -11,15 +11,21 @@ LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 all: os.iso
 	
 
-stage2: loader/stage2/stage2.asm
+bootloader/cdrom/stage2.bin: bootloader/cdrom/stage2.asm
 	$(AS) $^ -o $@
 
-stage1: loader/stage1/boot.asm stage2
-	$(AS) $< -o $@
-	mv stage1 iso/boot/
-	cp stage2 iso/boot/
-	mkisofs -R -b boot/stage1 -no-emul-boot -v -o stage1.iso iso
-	qemu-system-x86_64 -s -cdrom stage1.iso -m 1024
+bootloader/cdrom/stage1: bootloader/cdrom/stage1.asm
+	$(AS) $^ -o $@
+
+bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin
+	cp kernel.elf iso/boot
+	cp bootloader/cdrom/stage1 iso/boot
+	cp bootloader/cdrom/stage2.bin iso/boot
+	mkisofs -R -b boot/stage1 -no-emul-boot -v -o bootloader.iso iso
+
+.PHONY: runbl
+runbl: bootloader.iso
+	qemu-system-x86_64 -s -cdrom bootloader.iso -m 1024
 
 loader.o: loader.asm
 	$(AS) $(ASFLAGS) $^ -o $@
@@ -75,6 +81,10 @@ run: os.iso
 .PHONY: debug
 debug: os.iso
 	bochs -f bochsrc
+
+.PHONY: debugbl
+debugbl: bootloader.iso
+	bochs -f bochsrcbl
 
 .PHONY: gdb
 gdb:

@@ -206,7 +206,7 @@ dap_ptr:
 db 16 ; dap size = 16
 db 0 ; reversed
 dw 1 ; count
-dd 0x10000000 ; dest 0x1000:0000 = 0x10000
+dd 0 ; dest
 dd 0 ; sector no low
 dd 0 ; sector no high
 
@@ -233,10 +233,10 @@ not_present_str db "Extensions not present.", 0
 path_not_found_str db "Path not found.", 0
 stage2_not_found_str db "Stage2 not found.", 0
 
-; /BOOT/STAGE2
+; /BOOT/STAGE2.BIN
 name_min_size equ 4 ; length of "BOOT"
 boot_dir_name db "BOOT", 0
-stage2_file_name db "STAGE2.", 0
+stage2_file_name db "STAGE2.BIN", 0
 
 times 510 - ($ - $$) db 0 
 dw 0xaa55

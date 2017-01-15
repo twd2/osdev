@@ -25,7 +25,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 # 若只有一个软盘，则使用floppya即可，若有多个，则为floppya，floppyb...
 
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata0-master: type=cdrom, path=os.iso, status=inserted
+ata0-master: type=cdrom, path=bootloader.iso, status=inserted
 
 
 # 第四步，选择启动盘符。
