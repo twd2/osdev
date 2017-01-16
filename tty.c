@@ -1,6 +1,7 @@
 #include "tty.h"
 
 #include <runtime/types.h>
+#include <stdlib/string.h>
 #include <driver/vga.h>
 #include <process.h>
 
@@ -214,15 +215,7 @@ uint8_t kprint_hex(uint32_t x)
 #define HEX_COUNT (sizeof(x) * 2)
     kprint("0x");
     char buffer[HEX_COUNT + 1] = { 0 };
-    for (int8_t i = HEX_COUNT - 1; i >= 0; --i)
-    {
-        buffer[i] = (x & 0xF) + '0';
-        if (buffer[i] > '9')
-        {
-            buffer[i] = buffer[i] - '9' + 'A' - 1;
-        }
-        x >>= 4;
-    }
+    utoh(x, buffer);
 #undef HEX_COUNT
     return kprint(buffer) + 2;
 }
@@ -232,42 +225,15 @@ uint8_t kprint_bin(uint32_t x)
 #define BIT_COUNT (sizeof(x) * 8)
     kprint("0b");
     char buffer[BIT_COUNT + 1] = { 0 };
-    for (uint8_t i = 0; i < BIT_COUNT; ++i)
-    {
-        buffer[i] = (x & 0x80000000) ? '1' : '0';
-        x <<= 1;
-    }
+    utob(x, buffer);
 #undef BIT_COUNT
     return kprint(buffer) + 2;
 }
 
 uint8_t kprint_int(int32_t x)
 {
-    if (!x)
-    {
-        return kprint("0");
-    }
-    if (x < 0)
-    {
-        kprint("-");
-        x = -x;
-    }
-    char buffer[11] = { 0 };
-    uint8_t i = 0;
-    while (x)
-    {
-        buffer[i] = x % 10 + '0';
-        x /= 10;
-        ++i;
-    }
-
-    // reverse
-    for (uint8_t j = 0; j < (i >> 1); ++j)
-    {
-        char tmp = buffer[i - j - 1];
-        buffer[i - j - 1] = buffer[j];
-        buffer[j] = tmp;
-    }
+    char buffer[12] = { 0 }; // -2 147 483 647, 11 chars
+    itos(x, buffer);
     return kprint(buffer);
 }
 

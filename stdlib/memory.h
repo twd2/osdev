@@ -3,6 +3,7 @@
 
 #include <runtime/types.h>
 
+uint32_t memset(void *dest, uint8_t value, uint32_t num);
 uint32_t memcpy(void *dest, const void *src, uint32_t num);
 uint32_t strlen(const char *src);
 uint32_t strcpy(char *dest, const char *src);

@@ -66,7 +66,10 @@ driver/vga.o: driver/vga.c
 stdlib/memory.o: stdlib/memory.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o
+stdlib/string.o: stdlib/string.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf iso/boot/grub/grub.cfg

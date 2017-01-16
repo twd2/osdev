@@ -11,7 +11,7 @@
 
 extern uint8_t end_of_kernel;
 void *free_mem_start = &end_of_kernel;
-void *free_mem_end = NULL;
+void *free_mem_end = NULL; // [free_mem_start, free_mem_end)
 static uint8_t process_stack[0x3000];
 
 void delay(int x)
@@ -137,7 +137,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         return 0xdeadbeef;
     }
 
-    free_mem_end = (void *)(mb_info->mem_upper << 10);
+    free_mem_end = (void *)(mb_info->mem_upper << 10) + 0x100000;
 
     init_tty();
     kclear();

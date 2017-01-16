@@ -1,5 +1,22 @@
 #include "memory.h"
 
+uint32_t memset(void *dest, uint8_t value, uint32_t num)
+{
+    uint32_t value32 = ((uint32_t)value << 24) | ((uint32_t)value << 16) |
+                       ((uint32_t)value << 8) | ((uint32_t)value << 0);
+    uint32_t *dest32 = dest;
+    uint8_t *dest8 = dest + (num & ~3);
+    for (uint32_t i = 0; i < (num >> 2); ++i)
+    {
+        dest32[i] = value32;
+    }
+    for (uint32_t i = 0; i < (num & 3); ++i)
+    {
+        dest8[i] = value;
+    }
+    return num;
+}
+
 uint32_t memcpy(void *dest, const void *src, uint32_t num)
 {
     uint32_t *dest32 = dest;
