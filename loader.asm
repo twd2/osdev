@@ -48,6 +48,8 @@ nop
 nop
 nop
 
+times 0x100000 nop ; makes kernel bigger
+
 _start:
   cli
 

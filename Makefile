@@ -11,14 +11,17 @@ LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 all: os.iso
 	
 
-bootloader/cdrom/stage2.bin: bootloader/cdrom/stage2.asm
-	$(AS) $^ -o $@
+.PHONY: bootloader/cdrom/stage2.bin
+bootloader/cdrom/stage2.bin: bootloader/cdrom/stage2.asm stdlib/memory.o stdlib/string.o
+	cd bootloader/cdrom && make stage2.bin
 
+.PHONY: bootloader/cdrom/stage1
 bootloader/cdrom/stage1: bootloader/cdrom/stage1.asm
-	$(AS) $^ -o $@
+	cd bootloader/cdrom && make stage1
 
 bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin
 	cp kernel.elf iso/boot
+	cp cmdline.txt iso/boot
 	cp bootloader/cdrom/stage1 iso/boot
 	cp bootloader/cdrom/stage2.bin iso/boot
 	mkisofs -R -b boot/stage1 -no-emul-boot -v -o bootloader.iso iso
