@@ -48,10 +48,10 @@ nop
 nop
 nop
 
-times 0x100000 nop ; makes kernel bigger
-
 _start:
   cli
+
+  times 0x100000 nop ; makes kernel bigger
 
   ; save eax=MULTIBOOT_BOOTLOADER_MAGIC and ebx=multiboot_info_t*
   mov edi, eax

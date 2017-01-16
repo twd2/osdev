@@ -24,7 +24,7 @@ bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin
 	cp cmdline.txt iso/boot
 	cp bootloader/cdrom/stage1 iso/boot
 	cp bootloader/cdrom/stage2.bin iso/boot
-	mkisofs -R -b boot/stage1 -no-emul-boot -v -o bootloader.iso iso
+	mkisofs -R -b boot/stage1 -no-emul-boot -V WDOS -v -o bootloader.iso iso
 
 .PHONY: runbl
 runbl: bootloader.iso

@@ -2,9 +2,11 @@
 #include <multiboot.h>
 
 #include <stdlib/memory.h>
+#include <stdlib/string.h>
 
 #include "bios.h"
 #include "iso9660.h"
+#include "elf.h"
 
 #define assert(x) do { if (!(x)) die("\r\nAssertion failed.\r\n"); } while (0)
 
@@ -14,6 +16,19 @@ const char *const kernel_file = "/boot/kernel.elf";
 char kernel_cmdline[256];
 void *const sector_buffer = (void *)0x20000;
 multiboot_info_t mb_info;
+
+void *malloc(uint32_t size)
+{
+    static uint8_t *buffer = (void *)0x30000;
+    uint8_t *old_buffer = buffer;
+    buffer += size;
+    return old_buffer;
+}
+
+void free(void *ptr)
+{
+
+}
 
 int print_hex(uint32_t x)
 {
@@ -51,9 +66,9 @@ void load_memory_map()
     }
     print_int(count);
     print(" entries.\r\n");
-    print("+------------------------------------+\r\n"
-          "|          SYSTEM MEMORY MAP         |\r\n"
-          "+------------------------------------+\r\n"
+    print("+-----------------------------------+\r\n"
+          "|         SYSTEM MEMORY MAP         |\r\n"
+          "+-----------------------------------+\r\n"
           "   BASE       LIMIT      TYPE USABLE? \r\n");
     mb_info.mem_lower = mb_info.mem_upper = 0;
     for (int i = 0; i < count; ++i)
@@ -133,7 +148,7 @@ directory_record_t *find_file(const char *path)
         // check CD001
         if (memcmp(pvd->std_ident, "CD001", 5))
         {
-            die("\r\nInvaild CD-ROM.\r\n");
+            die("\r\nInvalid CD-ROM.\r\n");
         }
         if (pvd->type == VD_TYPE_PRIMARY)
         {
@@ -214,9 +229,9 @@ void load_cmdline()
     print(" bytes read.\r\n");
 }
 
-typedef void (*kernel_t)();
+typedef void (*kernel_entry_t)();
 
-kernel_t load_kernel()
+kernel_entry_t load_kernel()
 {
     print("Loading kernel ");
     print(kernel_file);
@@ -226,19 +241,76 @@ kernel_t load_kernel()
     {
         die("\r\nFile not found.\r\n");
     }
-    // TODO read elf
-    // read_extent(rec, sector_buffer);
-    print(" ");
-    print_int(rec->data_length);
-    print(" bytes read.\r\n");
-    return NULL;
+
+    uint32_t elf_lba = rec->extent_location, elf_length = rec->data_length;
+
+    print_int(elf_length);
+    print(" bytes.\r\n");
+
+    Elf32_Ehdr elf_header;
+
+    read_sector(boot_device, elf_lba, sector_buffer, 1);
+    print(".");
+    memcpy(&elf_header, sector_buffer, sizeof(Elf32_Ehdr));
+    if (memcmp(elf_header.e_ident, ELFMAG, SELFMAG))
+    {
+        die("\r\nNot an ELF file.\r\n");
+    }
+    if (elf_header.e_type != ET_EXEC)
+    {
+        die("\r\nNot an executable ELF file.\r\n");
+    }
+    
+    kernel_entry_t kernel_entry = elf_header.e_entry;
+    uint8_t code[] = { 0xeb, 0xfe /* jmp $ */, 0xcc /* int3 */ }; // default kernel code
+    memcpy(kernel_entry, code, sizeof(code));
+
+    print("kernel_entry=");
+    print_hex(kernel_entry);
+    print("\r\n");
+
+    Elf32_Phdr *program_header =
+        (Elf32_Phdr *)malloc(elf_header.e_phentsize * elf_header.e_phnum);
+    memcpy(program_header, (uint8_t *)sector_buffer + elf_header.e_phoff,
+           elf_header.e_phentsize * elf_header.e_phnum);
+
+    print("+------------------------------------------------------------+\r\n"
+          "|                        PROGRAM HEADERS                     |\r\n"
+          "+------------------------------------------------------------+\r\n"
+          "   TYPE OFFSET     VIRT ADDR  PHYS ADDR  FILE SIZE  MEM  SIZE \r\n");
+    for (int i = 0; i < elf_header.e_phnum; ++i)
+    {
+        print_int(i + 1);
+        print(": ");
+        if (program_header[i].p_type == PT_LOAD)
+        {
+            print("LOAD");
+        }
+        else
+        {
+            print("????");
+        }
+        print(" ");
+        print_hex(program_header[i].p_offset);
+        print(" ");
+        print_hex(program_header[i].p_vaddr);
+        print(" ");
+        print_hex(program_header[i].p_paddr);
+        print(" ");
+        print_hex(program_header[i].p_filesz);
+        print(" ");
+        print_hex(program_header[i].p_memsz);
+        print("\r\n");
+    }
+    // TODO: load each segment
+    return kernel_entry;
 }
 
-void jmp_kernel(kernel_t kernel, uint32_t mb_magic, multiboot_info_t *mb_info)
+void jmp_kernel(kernel_entry_t kernel_entry, uint32_t mb_magic, multiboot_info_t *mb_info)
 {
     asm("jmp *%%ecx"
         : 
-        : "c"(kernel), "a"(mb_magic), "b"(mb_info));
+        : "c"(kernel_entry), "a"(mb_magic), "b"(mb_info));
 }
 
 void blmain()
@@ -250,13 +322,13 @@ void blmain()
     load_cmdline();
     fill_multiboot_info();
 
-    kernel_t kernel = load_kernel();
+    kernel_entry_t kernel_entry = load_kernel();
 
     print("Calling kernel with cmdline=\"");
     print(kernel_cmdline);
     print("\"...\r\n");
-    assert(kernel);
-    jmp_kernel(kernel, MULTIBOOT_BOOTLOADER_MAGIC, &mb_info);
+    assert(kernel_entry);
+    jmp_kernel(kernel_entry, MULTIBOOT_BOOTLOADER_MAGIC, &mb_info);
 
     die("Unknown error.");
 }
