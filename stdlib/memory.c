@@ -73,7 +73,7 @@ uint32_t strcpy(char *dest, const char *src)
     return memcpy(dest, src, strlen(src) + 1) - 1;
 }
 
-char *strsplit(const char *str, char delim, char *out_buffer)
+const char *strsplit(const char *str, char delim, char *out_buffer)
 {
     while (*str && *str != delim)
     {
@@ -90,4 +90,5 @@ char *strsplit(const char *str, char delim, char *out_buffer)
     {
         return str + 1;
     }
+    return NULL;
 }
