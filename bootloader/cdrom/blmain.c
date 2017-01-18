@@ -10,6 +10,9 @@
 
 #define assert(x) do { if (!(x)) die("\r\nAssertion failed.\r\n"); } while (0)
 
+extern uint8_t _bss_begin, _bss_end;
+void *bss_begin = &_bss_begin, *bss_end = &_bss_end;
+
 const char *const cmdline_file = "/boot/cmdline.txt";
 const char *const kernel_file = "/boot/kernel.elf";
 
