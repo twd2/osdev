@@ -1,1 +1,1 @@
-cmdline test 中文命令行测试
+cmdline test

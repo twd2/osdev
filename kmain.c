@@ -1,3 +1,4 @@
+#include <boot.h>
 #include <multiboot.h>
 #include <tty.h>
 #include <pm.h>
@@ -12,6 +13,8 @@
 extern uint8_t end_of_kernel;
 void *free_mem_start = &end_of_kernel;
 void *free_mem_end = NULL; // [free_mem_start, free_mem_end)
+uint32_t memory_map_count;
+memory_map_t memory_map[16];
 static uint8_t process_stack[0x3000];
 
 void delay(int x)
@@ -105,11 +108,38 @@ void print_multiboot_info(int mb_magic, multiboot_info_t *mb_info)
     kprint_int(mb_info->mem_upper);
     kprint(" KiB, boot_device=");
     kprint_hex(mb_info->boot_device);
-    kprint(",\n-> cmdline at ");
+    kprint(", \n-> mmap_addr=");
+    kprint_hex(mb_info->mmap_addr);
+    kprint(", mmap_length=");
+    kprint_int(mb_info->mmap_length);
+    kprint(" bytes,\n-> cmdline at ");
     kprint_hex(mb_info->cmdline);
     kprint(", cmdline=\"");
     kprint((char *)mb_info->cmdline);
     kprint("\"\n");
+}
+
+void copy_mem_map(multiboot_info_t *mb_info)
+{
+    memory_map_long_t *mmap = (memory_map_long_t *)memory_map;
+    memory_map_t *mb_mmap = (memory_map_t *)mb_info->mmap_addr;
+    memory_map_t *mb_mmap_end = (memory_map_t *)(mb_info->mmap_addr + mb_info->mmap_length);
+
+    memory_map_count = 0;
+    while (mb_mmap != mb_mmap_end)
+    {
+        if (mb_mmap->type == MEMORY_TYPE_USABLE)
+        {
+            mmap[memory_map_count].base_low = mb_mmap->base_addr_low;
+            mmap[memory_map_count].base_high = mb_mmap->base_addr_high;
+            mmap[memory_map_count].length_low = mb_mmap->length_low;
+            mmap[memory_map_count].length_high = mb_mmap->length_high;
+            ++memory_map_count;
+        }
+
+        //next
+        mb_mmap = (memory_map_t *)((uint8_t *)mb_mmap + mb_mmap->size + sizeof(mb_mmap->size));
+    }
 }
 
 void print_mem_info()
@@ -119,7 +149,20 @@ void print_mem_info()
     kprint_hex(free_mem_start);
     kprint(", free_mem_end=");
     kprint_hex(free_mem_end);
+    kprint(", memory_map_count=");
+    kprint_int(memory_map_count);
     kprint("\n");
+    memory_map_long_t *mmapl = (memory_map_long_t *)memory_map;
+    for (int i = 0; i < memory_map_count; ++i)
+    {
+        kprint("[KDEBUG] ");
+        kprint_int(i);
+        kprint(": base=");
+        kprint_hex_long(mmapl[i].base);
+        kprint(", limit=");
+        kprint_hex_long(mmapl[i].base - 1 + mmapl[i].length);
+        kprint("\n");
+    }
 }
 
 int kmain(int mb_magic, multiboot_info_t *mb_info)
@@ -127,6 +170,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     if (mb_magic != MULTIBOOT_BOOTLOADER_MAGIC)
     {
         // not multiboot
+        init_tty();
         kclear();
         kprint("WDOS [version 0.0]\nMust boot from a multiboot bootloader.\n");
         asm("cli");
@@ -144,6 +188,15 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
 
     kprint_ok_fail("[KDEBUG] system booted successfully.", true);
     print_multiboot_info(mb_magic, mb_info);
+
+    bool flags_satisified = (mb_info->flags & MULTIBOOT_NEEDED_FLAGS) == MULTIBOOT_NEEDED_FLAGS;
+    kprint_ok_fail("[KDEBUG] check multiboot header flags", flags_satisified);
+    if (!flags_satisified)
+    {
+        return 0xdeadbeef;
+    }
+
+    copy_mem_map(mb_info);
     print_mem_info();
 
     kprint_ok_fail("[KDEBUG] init PIC 8259a", true);

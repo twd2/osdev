@@ -19,7 +19,7 @@ bootloader/cdrom/stage2.bin: bootloader/cdrom/stage2.asm stdlib/memory.o stdlib/
 bootloader/cdrom/stage1: bootloader/cdrom/stage1.asm
 	cd bootloader/cdrom && make stage1
 
-bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin
+bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin cmdline.txt
 	cp kernel.elf iso/boot
 	cp cmdline.txt iso/boot
 	cp bootloader/cdrom/stage1 iso/boot

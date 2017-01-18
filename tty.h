@@ -66,6 +66,7 @@ uint32_t kprint(const char *str);
 uint8_t kprint_int(int32_t x);
 uint8_t kprint_hex(uint32_t x);
 uint8_t kprint_bin(uint32_t x);
+uint8_t kprint_hex_long(uint64_t x);
 uint32_t kprint_ok_fail(const char *str, bool ok);
 void kset_char(uint8_t x, uint8_t y, char ch, uint8_t color);
 void kset_string(uint8_t x_offset, uint8_t y_offset, uint8_t width, const char *str, uint8_t color);

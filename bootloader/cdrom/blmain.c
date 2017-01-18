@@ -12,6 +12,7 @@
 #define LOW_MEMORY_BASE 0
 #define LOW_MEMORY_LIMIT (0xa0000 - 1)
 #define HIGH_MEMORY_BASE 0x100000
+#define MULTIBOOT_UNSUPPORTED_FLAGS (~0b10)
 
 extern uint8_t _bss_begin, _bss_end;
 void *bss_begin = &_bss_begin, *bss_end = &_bss_end;
@@ -20,10 +21,11 @@ const char *const cmdline_file = "/boot/cmdline.txt";
 const char *const kernel_file = "/boot/kernel.elf";
 
 char kernel_cmdline[256];
+uint32_t memory_map_count;
+bios_memory_map_t memory_map[16];
 void *const sector_buffer = (void *)0x20000; // length: 64 KiB
 multiboot_info_t mb_info;
 
-#define NDEBUG
 #ifndef NDEBUG
 void debug_pause()
 {
@@ -36,14 +38,13 @@ void debug_pause()
 
 void load_memory_map()
 {
-    static bios_memory_map_t mem[16];
     print("Loading system memory map... ");
-    int count = read_memory_map(mem);
-    if (!count)
+    memory_map_count = read_memory_map(memory_map);
+    if (!memory_map_count)
     {
         die("\r\nLoad system memory map failed.\r\n");
     }
-    print_int(count);
+    print_int(memory_map_count);
     print(" entries.\r\n");
     print("+----------------------------------------------------+\r\n"
           "|                   SYSTEM MEMORY MAP                |\r\n"
@@ -53,21 +54,21 @@ void load_memory_map()
 #ifndef X86_64
     bool has_warning = false;
 #endif
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < memory_map_count; ++i)
     {
-        uint64_t limit = mem[i].base - 1 + mem[i].length;
-        uint32_t limit_low = mem[i].base_low - 1 + mem[i].length_low;
+        uint64_t limit = memory_map[i].base - 1 + memory_map[i].length;
+        uint32_t limit_low = memory_map[i].base_low - 1 + memory_map[i].length_low;
         print_byte((uint8_t)i);
         print(": ");
-        print_hex_long(mem[i].base);
+        print_hex_long(memory_map[i].base);
         print("~");
-        print_hex_long(mem[i].base - 1 + mem[i].length);
+        print_hex_long(memory_map[i].base - 1 + memory_map[i].length);
         print("    ");
-        print_int(mem[i].type);
-        if (mem[i].type == MEMORY_TYPE_USABLE)
+        print_int(memory_map[i].type);
+        if (memory_map[i].type == MEMORY_TYPE_USABLE)
         {
 #ifndef X86_64
-            if (!mem[i].base_high && !(limit & 0xFFFFFFFF00000000ULL))
+            if (!memory_map[i].base_high && !(limit & 0xFFFFFFFF00000000ULL))
             {
 #endif
             print("     YES");
@@ -75,10 +76,10 @@ void load_memory_map()
             {
                 mb_info.mem_lower = (limit_low + 1) >> 10;
             }
-            else if (!mb_info.mem_upper && mem[i].base_low >= HIGH_MEMORY_BASE)
+            else if (!mb_info.mem_upper && memory_map[i].base_low >= HIGH_MEMORY_BASE)
             {
                 // first upper memory hole
-                mb_info.mem_upper = mem[i].length_low >> 10;
+                mb_info.mem_upper = memory_map[i].length_low >> 10;
             }
 #ifndef X86_64
             }
@@ -110,10 +111,25 @@ void load_memory_map()
 
 void fill_multiboot_info()
 {
-    mb_info.flags = 0b111; // has mem_lower, mem_upper, boot_device and cmdline
+    mb_info.flags = 0b1000111; // has mem_lower, mem_upper, boot_device, cmdline and mmap_*
     // mem_lower and mem_upper are filled by load_memory_map()
     mb_info.boot_device = ((uint32_t)boot_device << 24) | 0xffffff; // ???
     mb_info.cmdline = (uint32_t)kernel_cmdline;
+
+    // copy memory_map
+    assert(memory_map_count);
+    mb_info.mmap_length = memory_map_count * sizeof(memory_map_t);
+    memory_map_t *mb_mmap = malloc(mb_info.mmap_length);
+    for (int i = 0; i < memory_map_count; ++i)
+    {
+        mb_mmap[i].size = sizeof(mb_mmap[i]) - sizeof(mb_mmap[i].size);
+        mb_mmap[i].base_addr_low = memory_map[i].base_low;
+        mb_mmap[i].base_addr_high = memory_map[i].base_high;
+        mb_mmap[i].length_low = memory_map[i].length_low;
+        mb_mmap[i].length_high = memory_map[i].length_high;
+        mb_mmap[i].type = memory_map[i].type;
+    }
+    mb_info.mmap_addr = (uint32_t)mb_mmap;
 }
 
 void *read_all_extent(directory_record_t *file, void *buffer)
@@ -380,6 +396,15 @@ kernel_entry_t load_kernel()
     if (-(mb_header->magic + mb_header->flags) != mb_header->checksum)
     {
         die("\r\nChecksum is incorrect.\r\n");
+    }
+
+    print("flags=");
+    print_bin(mb_header->flags);
+    print("\r\n");
+
+    if (mb_header->flags & MULTIBOOT_UNSUPPORTED_FLAGS)
+    {
+        die("\r\nUnsupported flag(s) found.\r\n");
     }
 
     debug_pause();
