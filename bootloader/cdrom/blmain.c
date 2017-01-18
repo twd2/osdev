@@ -66,32 +66,48 @@ void load_memory_map()
     }
     print_int(count);
     print(" entries.\r\n");
-    print("+-----------------------------------+\r\n"
-          "|         SYSTEM MEMORY MAP         |\r\n"
-          "+-----------------------------------+\r\n"
-          "   BASE       LIMIT      TYPE USABLE? \r\n");
+    print("+----------------------------------------------------+\r\n"
+          "|                   SYSTEM MEMORY MAP                |\r\n"
+          "+----------------------------------------------------+\r\n"
+          "    BASE               LIMIT              TYPE USABLE?\r\n");
     mb_info.mem_lower = mb_info.mem_upper = 0;
+#ifndef X86_64
+    bool has_warning = false;
+#endif
     for (int i = 0; i < count; ++i)
     {
-        uint32_t limit = mem[i].base_low - 1 + mem[i].length_low;
-        print_int(i + 1);
+        uint64_t limit = mem[i].base - 1 + mem[i].length;
+        uint32_t limit_low = mem[i].base_low - 1 + mem[i].length_low;
+        print_byte((uint8_t)i);
         print(": ");
-        print_hex(mem[i].base_low);
-        print(" ");
-        print_hex(mem[i].base_low - 1 + mem[i].length_low);
+        print_hex_long(mem[i].base);
+        print("~");
+        print_hex_long(mem[i].base - 1 + mem[i].length);
         print("    ");
         print_int(mem[i].type);
         if (mem[i].type == MEMORY_TYPE_USABLE)
         {
-            print("     YES");
-            if (limit < 0xa0000) // in 640 KiB
+#ifndef X86_64
+            if (!mem[i].base_high && !(limit & 0xFFFFFFFF00000000ULL))
             {
-                mb_info.mem_lower = (limit + 1) >> 10;
+#endif
+            print("     YES");
+            if (limit_low < 0xa0000) // in 640 KiB
+            {
+                mb_info.mem_lower = (limit_low + 1) >> 10;
             }
             else if (!mb_info.mem_upper && mem[i].base_low >= 0x100000) // first upper memory hole
             {
                 mb_info.mem_upper = mem[i].length_low >> 10;
             }
+#ifndef X86_64
+            }
+            else
+            {
+                has_warning = true;
+                print("     NO*");
+            }
+#endif
         }
         else
         {
@@ -99,6 +115,12 @@ void load_memory_map()
         }
         print("\r\n");
     }
+#ifndef X86_64
+    if (has_warning)
+    {
+        print("* Warning: High memory is not usable for 32-bit system.\r\n");
+    }
+#endif
     print("mem_lower=");
     print_int(mb_info.mem_lower);
     print(" KiB, mem_upper=");
@@ -215,7 +237,13 @@ void load_cmdline()
     {
         die("\r\nFile not found.\r\n");
     }
-    read_extent(rec, kernel_cmdline);
+    if (rec->data_length >= sizeof(kernel_cmdline))
+    {
+        die("\r\nCmdline is too long.\r\n");
+    }
+    uint32_t length = rec->data_length;
+    read_all_extent(rec, sector_buffer);
+    memcpy(kernel_cmdline, sector_buffer, length);
     for (char *p = kernel_cmdline; *p; ++p)
     {
         if (*p == '\r' || *p == '\n')
@@ -244,23 +272,25 @@ kernel_entry_t load_kernel()
 
     uint32_t elf_lba = rec->extent_location, elf_length = rec->data_length;
 
+    print(" ");
     print_int(elf_length);
     print(" bytes.\r\n");
 
     Elf32_Ehdr elf_header;
-
     read_sector(boot_device, elf_lba, sector_buffer, 1);
     print(".");
     memcpy(&elf_header, sector_buffer, sizeof(Elf32_Ehdr));
+
     if (memcmp(elf_header.e_ident, ELFMAG, SELFMAG))
     {
         die("\r\nNot an ELF file.\r\n");
     }
+
     if (elf_header.e_type != ET_EXEC)
     {
         die("\r\nNot an executable ELF file.\r\n");
     }
-    
+
     kernel_entry_t kernel_entry = elf_header.e_entry;
     uint8_t code[] = { 0xeb, 0xfe /* jmp $ */, 0xcc /* int3 */ }; // default kernel code
     memcpy(kernel_entry, code, sizeof(code));
@@ -269,18 +299,21 @@ kernel_entry_t load_kernel()
     print_hex(kernel_entry);
     print("\r\n");
 
+    assert(elf_header.e_phnum);
+    assert(elf_header.e_phentsize == sizeof(Elf32_Phdr));
+
     Elf32_Phdr *program_header =
         (Elf32_Phdr *)malloc(elf_header.e_phentsize * elf_header.e_phnum);
     memcpy(program_header, (uint8_t *)sector_buffer + elf_header.e_phoff,
            elf_header.e_phentsize * elf_header.e_phnum);
 
-    print("+------------------------------------------------------------+\r\n"
-          "|                        PROGRAM HEADERS                     |\r\n"
-          "+------------------------------------------------------------+\r\n"
-          "   TYPE OFFSET     VIRT ADDR  PHYS ADDR  FILE SIZE  MEM  SIZE \r\n");
+    print("+-------------------------------------------------------------+\r\n"
+          "|                        PROGRAM HEADERS                      |\r\n"
+          "+-------------------------------------------------------------+\r\n"
+          "    TYPE OFFSET     VIRT ADDR  PHY ADDR   FILE SIZE  MEM SIZE  \r\n");
     for (int i = 0; i < elf_header.e_phnum; ++i)
     {
-        print_int(i + 1);
+        print_byte((uint8_t)i);
         print(": ");
         if (program_header[i].p_type == PT_LOAD)
         {
@@ -313,18 +346,40 @@ void jmp_kernel(kernel_entry_t kernel_entry, uint32_t mb_magic, multiboot_info_t
         : "c"(kernel_entry), "a"(mb_magic), "b"(mb_info));
 }
 
+void debug_pause()
+{
+    print("Press any key to continue...\r\n");
+    getchar();
+}
+
 void blmain()
 {
+    memset(bss_begin, 0, bss_end - bss_begin); // init .bss
+
     print("Stage 1 booted successfully.\r\n");
 
+    print("boot_device=");
+    print_byte(boot_device);
+    print(", sector size is ");
+    print_int(get_boot_device_sector_size());
+    print(" bytes.\r\n");
+
     load_memory_map();
+
+    debug_pause();
 
     load_cmdline();
     fill_multiboot_info();
 
+    debug_pause();
+
     kernel_entry_t kernel_entry = load_kernel();
 
-    print("Calling kernel with cmdline=\"");
+    debug_pause();
+
+    print("Calling kernel(at ");
+    print_hex(kernel_entry);
+    print(") with cmdline=\"");
     print(kernel_cmdline);
     print("\"...\r\n");
     assert(kernel_entry);

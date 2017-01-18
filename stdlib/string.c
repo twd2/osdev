@@ -17,6 +17,23 @@ uint8_t utoh(uint32_t x, char *buffer)
 #undef HEX_COUNT
 }
 
+uint8_t ultoh(uint64_t x, char *buffer)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    for (int8_t i = HEX_COUNT - 1; i >= 0; --i)
+    {
+        buffer[i] = (x & 0xF) + '0';
+        if (buffer[i] > '9')
+        {
+            buffer[i] = buffer[i] - '9' + 'A' - 1;
+        }
+        x >>= 4;
+    }
+    buffer[HEX_COUNT] = 0;
+    return HEX_COUNT;
+#undef HEX_COUNT
+}
+
 uint8_t utob(uint32_t x, char *buffer)
 {
 #define BIT_COUNT (sizeof(x) * 8)
@@ -78,4 +95,21 @@ uint8_t itos(int32_t x, char *buffer)
     
     buffer[i] = 0;
     return i;
+}
+
+uint8_t btoh(uint8_t x, char *buffer)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    for (int8_t i = HEX_COUNT - 1; i >= 0; --i)
+    {
+        buffer[i] = (x & 0xF) + '0';
+        if (buffer[i] > '9')
+        {
+            buffer[i] = buffer[i] - '9' + 'A' - 1;
+        }
+        x >>= 4;
+    }
+    buffer[HEX_COUNT] = 0;
+    return HEX_COUNT;
+#undef HEX_COUNT
 }

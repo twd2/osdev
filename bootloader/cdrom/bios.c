@@ -20,6 +20,49 @@ int print(const char *str)
     return bios_function(FUNCTION_PRINT, (uint32_t)str, 0);
 }
 
+int print_hex(uint32_t x)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    static char buffer[HEX_COUNT + 3] = { '0', 'x', 0 };
+    utoh(x, &buffer[2]);
+#undef HEX_COUNT
+    return print(buffer);
+}
+
+int print_bin(uint32_t x)
+{
+#define BIT_COUNT (sizeof(x) * 8)
+    static char buffer[BIT_COUNT + 3] = { '0', 'b', 0 };
+    utob(x, &buffer[2]);
+#undef BIT_COUNT
+    return print(buffer);
+}
+
+int print_int(int32_t x)
+{
+    static char buffer[12] = { 0 }; // -2 147 483 647, 11 chars
+    itos(x, buffer);
+    return print(buffer);
+}
+
+int print_byte(uint8_t x)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    static char buffer[HEX_COUNT + 1] = { 0 };
+    btoh(x, buffer);
+#undef HEX_COUNT
+    return print(buffer);
+}
+
+int print_hex_long(uint64_t x)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    static char buffer[HEX_COUNT + 3] = { '0', 'x', 0 };
+    ultoh(x, &buffer[2]);
+#undef HEX_COUNT
+    return print(buffer);
+}
+
 uint8_t getchar()
 {
     static uint8_t buffer[2];

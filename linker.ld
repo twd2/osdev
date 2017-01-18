@@ -33,6 +33,6 @@ SECTIONS
   .pm ALIGN(4K):
   {
     *(.pm)
-    end_of_kernel = (. + 4095) & (~ 4095);
+    end_of_kernel = (. + 4095) & (~ 4095); /* 4K align */
   }
 }

@@ -8,7 +8,7 @@ ASFLAGS = -felf32
 LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 
 .PHONY: all
-all: os.iso
+all: os.iso bootloader.iso
 	
 
 .PHONY: bootloader/cdrom/stage2.bin
@@ -103,4 +103,5 @@ clean:
 	-rm *.iso
 	-rm driver/*.o
 	-rm stdlib/*.o
+	cd bootloader/cdrom && make clean
 	
