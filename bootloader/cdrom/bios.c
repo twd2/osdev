@@ -1,11 +1,14 @@
 #include "bios.h"
 
+#include "util.h"
+
 #define FUNCTION_PRINT 1
 #define FUNCTION_GETCHAR 2
 #define FUNCTION_READ_SECTOR 3
 #define FUNCTION_MEMORY_MAP 4
 #define FUNCTION_DRIVE_PARAMS 5
 
+// bios_function.inc
 int bios_function(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 
 inline void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset)
@@ -18,24 +21,24 @@ inline void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset)
 
 int print(const char *str)
 {
+    if (!(0x10000 <= (uint32_t)str && (uint32_t)str <= 0x1ffff))
+    {
+        die("Argument for str is out of range.\r\n");
+    }
     return bios_function(FUNCTION_PRINT, (uint32_t)str, 0);
 }
 
 int print_hex(uint32_t x)
 {
-#define HEX_COUNT (sizeof(x) * 2)
-    static char buffer[HEX_COUNT + 3] = { '0', 'x', 0 };
+    static char buffer[sizeof(x) * 2 + 3] = { '0', 'x', 0 };
     utoh(x, &buffer[2]);
-#undef HEX_COUNT
     return print(buffer);
 }
 
 int print_bin(uint32_t x)
 {
-#define BIT_COUNT (sizeof(x) * 8)
-    static char buffer[BIT_COUNT + 3] = { '0', 'b', 0 };
+    static char buffer[sizeof(x) * 8 + 3] = { '0', 'b', 0 };
     utob(x, &buffer[2]);
-#undef BIT_COUNT
     return print(buffer);
 }
 
@@ -48,19 +51,15 @@ int print_int(int32_t x)
 
 int print_byte(uint8_t x)
 {
-#define HEX_COUNT (sizeof(x) * 2)
-    static char buffer[HEX_COUNT + 1] = { 0 };
+    static char buffer[sizeof(x) * 2 + 1] = { 0 };
     btoh(x, buffer);
-#undef HEX_COUNT
     return print(buffer);
 }
 
 int print_hex_long(uint64_t x)
 {
-#define HEX_COUNT (sizeof(x) * 2)
-    static char buffer[HEX_COUNT + 3] = { '0', 'x', 0 };
+    static char buffer[sizeof(x) * 2 + 3] = { '0', 'x', 0 };
     ultoh(x, &buffer[2]);
-#undef HEX_COUNT
     return print(buffer);
 }
 
@@ -71,9 +70,13 @@ uint8_t getchar()
     return buffer[0];
 }
 
-// count <= 64
+// count should be less than or equal to 64.
 static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
+    if (!count)
+    {
+        return OK;
+    }
     static dap_t dap;
     dap.size = sizeof(dap);
     dap.reserved = 0;
@@ -86,23 +89,72 @@ static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 
 int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
-    const uint16_t sector_size = get_boot_device_sector_size();
-    uint8_t *buffer8 = buffer;
-    uint32_t lba_rest = lba + (count & ~31);
-    uint8_t *buffer_rest = buffer8 + (count & ~31) * sector_size;
-    for (int i = 0; i < (count >> 5); ++i)
+    if ((uint32_t)buffer > 0xfffff)
     {
-        int ret = _read_sector(dev, lba + (i << 5), buffer8 + (i << 5) * sector_size, 32);
+        die("Argument for buffer is out of range.\r\n");
+    }
+
+    const uint16_t sector_size = get_boot_device_sector_size();
+    // how many sectors can we read at most at once?
+    const uint16_t block_count = (uint16_t)(BIOS_DMA_MAX_LENGTH / (uint32_t)sector_size);
+    assert(is_power_of_2(block_count));
+
+    uint8_t *buffer8 = buffer;
+    for (int i = 0; i < (count / block_count); ++i)
+    {
+        int ret = _read_sector(dev, lba, buffer8, block_count);
         if (ret != OK)
         {
             return ret;
         }
+        lba += block_count;
+        buffer8 += block_count * sector_size;
     }
-    return _read_sector(dev, lba_rest, buffer_rest, count & 31); // the last several sectors
+    // the last several sectors
+    return _read_sector(dev, lba, buffer8, count & (block_count - 1));
+}
+
+int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t count, void *buffer)
+{
+    if ((uint32_t)buffer > 0xfffff)
+    {
+        die("Argument for buffer is out of range.\r\n");
+    }
+
+    const uint16_t sector_size = get_boot_device_sector_size();
+    // how many sectors can we read at most at once?
+    const uint16_t block_count = (uint16_t)(BIOS_DMA_MAX_LENGTH / (uint32_t)sector_size);
+    assert(is_power_of_2(block_count));
+
+    uint8_t *dest8 = dest;
+    for (int i = 0; i < (count / block_count); ++i)
+    {
+        int ret = _read_sector(dev, lba, buffer, block_count);
+        if (ret != OK)
+        {
+            return ret;
+        }
+        memcpy(dest8, buffer, block_count * sector_size); // copy to high
+        lba += block_count;
+        dest8 += block_count * sector_size;
+    }
+    // the last several sectors
+    int ret = _read_sector(dev, lba, buffer, count & (block_count - 1));
+    if (ret != OK)
+    {
+        return ret;
+    }
+    memcpy(dest8, buffer, (count & (block_count - 1)) * sector_size); // copy to high
+    return OK;
 }
 
 int read_memory_map(bios_memory_map_t *buffer)
 {
+    if (!(0x10000 <= (uint32_t)buffer && (uint32_t)buffer <= 0x1ffff))
+    {
+        die("Argument for buffer is out of range.\r\n");
+    }
+
     static uint32_t size;
     size = sizeof(bios_memory_map_t); // in size, out count
     if (bios_function(FUNCTION_MEMORY_MAP, (uint32_t)buffer, (uint32_t)&size) != OK)

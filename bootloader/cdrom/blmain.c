@@ -4,11 +4,10 @@
 #include <stdlib/memory.h>
 #include <stdlib/string.h>
 
+#include "util.h"
 #include "bios.h"
 #include "iso9660.h"
 #include "elf.h"
-
-#define assert(x) do { if (!(x)) die("\r\nAssertion failed.\r\n"); } while (0)
 
 extern uint8_t _bss_begin, _bss_end;
 void *bss_begin = &_bss_begin, *bss_end = &_bss_end;
@@ -19,19 +18,6 @@ const char *const kernel_file = "/boot/kernel.elf";
 char kernel_cmdline[256];
 void *const sector_buffer = (void *)0x20000;
 multiboot_info_t mb_info;
-
-void *malloc(uint32_t size)
-{
-    static uint8_t *buffer = (void *)0x30000;
-    uint8_t *old_buffer = buffer;
-    buffer += size;
-    return old_buffer;
-}
-
-void free(void *ptr)
-{
-
-}
 
 void load_memory_map()
 {
@@ -114,16 +100,6 @@ void fill_multiboot_info()
     mb_info.cmdline = (uint32_t)kernel_cmdline;
 }
 
-void die(const char *str)
-{
-    print(str);
-    while (true)
-    {
-        asm("cli\n"
-            "hlt");
-    }
-}
-
 void *read_all_extent(directory_record_t *file, void *buffer)
 {
     const uint16_t sector_size = get_boot_device_sector_size();
@@ -146,7 +122,7 @@ directory_record_t *find_file(const char *path)
     {
         read_sector(boot_device, lba, sector_buffer, 1);
         print(".");
-        // check CD001
+        // check "CD001"
         if (memcmp(pvd->std_ident, "CD001", 5))
         {
             die("\r\nInvalid CD-ROM.\r\n");
@@ -353,9 +329,13 @@ void debug_pause()
 
 void blmain()
 {
-    memset(bss_begin, 0, bss_end - bss_begin); // init .bss
-
     print("Stage 1 booted successfully.\r\n");
+
+    if ((uint32_t)bss_end > 0x1ffff)
+    {
+        die("Section .bss is too long.\r\n");
+    }
+    memset(bss_begin, 0, bss_end - bss_begin); // init .bss
 
     print("boot_device=");
     print_byte(boot_device);

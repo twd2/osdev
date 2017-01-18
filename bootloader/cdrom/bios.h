@@ -3,7 +3,7 @@
 
 #include <runtime/types.h>
 
-#define BLOCK_COUNT 32 // read at most 32 sectors at once
+#define BIOS_DMA_MAX_LENGTH 0x10000
 
 #define OK 0
 #define ERROR_UNKNOWN_FUNCTION 0xffff
@@ -86,6 +86,9 @@ uint8_t getchar();
 
 // buffer must be in [0x00000, 0xfffff]
 int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count);
+
+// buffer must be in [0x00000, 0xfffff]
+int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t count, void *buffer);
 
 int read_memory_map(bios_memory_map_t *buffer); // buffer must be in [0x10000, 0x1ffff]
 int get_drive_params(uint8_t dev, drive_params_t *buffer);
