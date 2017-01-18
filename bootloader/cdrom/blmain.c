@@ -9,6 +9,7 @@
 #include "iso9660.h"
 #include "elf.h"
 
+// #define NDEBUG 1
 #define LOW_MEMORY_BASE 0
 #define LOW_MEMORY_LIMIT (0xa0000 - 1)
 #define HIGH_MEMORY_BASE 0x100000

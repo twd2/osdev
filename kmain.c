@@ -222,6 +222,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     tty_switch(default_tty + 3);
     uint32_t spid = process_create("shell", SELECTOR_USER_CODE, &process3,
                                    SELECTOR_USER_DATA, &process_stack[0x3000]);
+    tty_switch(default_tty);
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
 

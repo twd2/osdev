@@ -8,7 +8,7 @@ ASFLAGS = -felf32
 LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld
 
 .PHONY: all
-all: os.iso bootloader.iso
+all: os.iso grub.iso
 	
 
 .PHONY: bootloader/cdrom/stage2.bin
@@ -19,16 +19,12 @@ bootloader/cdrom/stage2.bin: bootloader/cdrom/stage2.asm stdlib/memory.o stdlib/
 bootloader/cdrom/stage1: bootloader/cdrom/stage1.asm
 	cd bootloader/cdrom && make stage1
 
-bootloader.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin cmdline.txt
+os.iso: kernel.elf bootloader/cdrom/stage1 bootloader/cdrom/stage2.bin cmdline.txt
 	cp kernel.elf iso/boot
 	cp cmdline.txt iso/boot
 	cp bootloader/cdrom/stage1 iso/boot
 	cp bootloader/cdrom/stage2.bin iso/boot
-	mkisofs -R -b boot/stage1 -no-emul-boot -V WDOS -v -o bootloader.iso iso
-
-.PHONY: runbl
-runbl: bootloader.iso
-	qemu-system-x86_64 -s -cdrom bootloader.iso -m 1024
+	mkisofs -R -b boot/stage1 -no-emul-boot -V WDOS -v -o os.iso iso
 
 loader.o: loader.asm
 	$(AS) $(ASFLAGS) $^ -o $@
@@ -75,10 +71,10 @@ stdlib/string.o: stdlib/string.c
 kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-os.iso: kernel.elf iso/boot/grub/grub.cfg
+grub.iso: kernel.elf iso/boot/grub/grub.cfg
 	cp kernel.elf iso/boot
 	grub-mkrescue --fonts=ascii --locales=en_GB --modules= \
-	              --product-name=WDOS --product-version=1.0 -o os.iso iso
+	              --product-name=WDOS --product-version=1.0 -o grub.iso iso
 
 .PHONY: run
 run: os.iso
@@ -88,9 +84,13 @@ run: os.iso
 debug: os.iso
 	bochs -f bochsrc
 
-.PHONY: debugbl
-debugbl: bootloader.iso
-	bochs -f bochsrcbl
+.PHONY: rungrub
+rungrub: grub.iso
+	qemu-system-x86_64 -s -cdrom grub.iso -m 1024
+
+.PHONY: debuggrub
+debuggrub: grub.iso
+	bochs -f bochsrcgrub
 
 .PHONY: gdb
 gdb:
