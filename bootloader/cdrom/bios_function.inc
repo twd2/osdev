@@ -28,6 +28,8 @@ bios_function:
   jmp 0x1000:_start16 - $$
   _start16:
 
+  cli
+
   mov ax, cs
   mov ds, ax
   mov es, ax
