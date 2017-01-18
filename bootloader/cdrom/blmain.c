@@ -315,7 +315,26 @@ kernel_entry_t load_kernel()
         print_hex(program_header[i].p_memsz);
         print("\r\n");
     }
+    // compatible with multiboot
+    // check multiboot header
+    uint32_t ph0_offset = program_header[0].p_offset;
+    read_sector(boot_device, elf_lba + ph0_offset / sector_size, sector_buffer, 1);
+
+    multiboot_header_t *mb_header =
+        (multiboot_header_t *)((uint8_t *)sector_buffer + ph0_offset % sector_size);
+
+    if (mb_header->magic != MULTIBOOT_HEADER_MAGIC)
+    {
+        die("\r\nELF file is not multiboot compatible.\r\n");
+    }
+
+    if (-(mb_header->magic + mb_header->flags) != mb_header->checksum)
+    {
+        die("\r\nChecksum is incorrect.\r\n");
+    }
+
     // TODO: load each segment
+    die("\r\nTODO\r\n");
     return kernel_entry;
 }
 
