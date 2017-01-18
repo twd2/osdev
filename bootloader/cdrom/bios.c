@@ -70,8 +70,9 @@ uint8_t getchar()
     return buffer[0];
 }
 
-// count should be less than or equal to 64.
-static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
+// buffer must be in [0x00000, 0xfffff]
+// count must be less than or equal to BIOS_DMA_MAX_LENGTH / sector_size.
+inline static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
     if (!count)
     {
@@ -87,6 +88,22 @@ static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
     return bios_function(FUNCTION_READ_SECTOR, dev, (uint32_t)&dap);
 }
 
+// buffer must be in [0x00000, 0xfffff]
+// count must be less than or equal to BIOS_DMA_MAX_LENGTH / sector_size.
+inline static int _read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t count,
+                                           void *buffer)
+{
+    const uint16_t sector_size = get_sector_size(dev);
+
+    int ret = _read_sector(dev, lba, buffer, count);
+    if (ret != OK)
+    {
+        return ret;
+    }
+    memcpy(dest, buffer, count * sector_size); // copy to high memory
+    return OK;
+}
+
 int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
     if ((uint32_t)buffer > 0xfffff)
@@ -94,7 +111,7 @@ int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
         die("Argument for buffer is out of range.\r\n");
     }
 
-    const uint16_t sector_size = get_boot_device_sector_size();
+    const uint16_t sector_size = get_sector_size(dev);
     // how many sectors can we read at most at once?
     const uint16_t block_count = (uint16_t)(BIOS_DMA_MAX_LENGTH / (uint32_t)sector_size);
     assert(is_power_of_2(block_count));
@@ -121,7 +138,7 @@ int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t coun
         die("Argument for buffer is out of range.\r\n");
     }
 
-    const uint16_t sector_size = get_boot_device_sector_size();
+    const uint16_t sector_size = get_sector_size(dev);
     // how many sectors can we read at most at once?
     const uint16_t block_count = (uint16_t)(BIOS_DMA_MAX_LENGTH / (uint32_t)sector_size);
     assert(is_power_of_2(block_count));
@@ -129,23 +146,17 @@ int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t coun
     uint8_t *dest8 = dest;
     for (int i = 0; i < (count / block_count); ++i)
     {
-        int ret = _read_sector(dev, lba, buffer, block_count);
+        int ret = _read_sector_high_memory(dev, lba, dest8, block_count, buffer);
         if (ret != OK)
         {
             return ret;
         }
-        memcpy(dest8, buffer, block_count * sector_size); // copy to high
         lba += block_count;
         dest8 += block_count * sector_size;
+        print(".");
     }
     // the last several sectors
-    int ret = _read_sector(dev, lba, buffer, count & (block_count - 1));
-    if (ret != OK)
-    {
-        return ret;
-    }
-    memcpy(dest8, buffer, (count & (block_count - 1)) * sector_size); // copy to high
-    return OK;
+    return _read_sector_high_memory(dev, lba, dest8, count & (block_count - 1), buffer);
 }
 
 int read_memory_map(bios_memory_map_t *buffer)
@@ -181,6 +192,22 @@ uint16_t get_boot_device_sector_size()
             dp.size = 0;
             return 0;
         }
+    }
+    return dp.sector_size;
+}
+
+uint16_t get_sector_size(uint8_t dev)
+{
+    static drive_params_t dp;
+
+    if (dev == boot_device)
+    {
+        return get_boot_device_sector_size();
+    }
+
+    if (get_drive_params(dev, &dp) != OK)
+    {
+        return 0;
     }
     return dp.sector_size;
 }

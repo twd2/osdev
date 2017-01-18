@@ -3,6 +3,9 @@
 
 #include <runtime/types.h>
 
+#define ISO9660_MAGIC "CD001"
+#define ISO9660_MAGIC_LENGTH 5
+
 #define VD_TYPE_PRIMARY 0x01
 #define VD_TYPE_TERMINATOR 0xff
 

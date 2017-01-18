@@ -93,5 +93,6 @@ int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t coun
 int read_memory_map(bios_memory_map_t *buffer); // buffer must be in [0x10000, 0x1ffff]
 int get_drive_params(uint8_t dev, drive_params_t *buffer);
 uint16_t get_boot_device_sector_size();
+uint16_t get_sector_size(uint8_t dev);
 
 #endif // _WDOS_BOOTLOADER_CDROM_STAGE2_BIOS_H_
