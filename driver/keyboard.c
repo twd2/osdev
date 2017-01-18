@@ -12,6 +12,7 @@ static uint8_t right_alt_down_count = 0;
 void init_keyboard()
 {
     register_irq_handler(IRQ_KEYBOARD, keyboard_irq_handler);
+    keyboard_read(); // eat
 }
 
 inline uint8_t keyboard_read()
