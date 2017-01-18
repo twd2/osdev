@@ -4,6 +4,7 @@
 #define FUNCTION_GETCHAR 2
 #define FUNCTION_READ_SECTOR 3
 #define FUNCTION_MEMORY_MAP 4
+#define FUNCTION_DRIVE_PARAMS 5
 
 int bios_function(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 
@@ -85,11 +86,7 @@ static int _read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 
 int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
-    uint16_t sector_size = 512;
-    if (dev >= 0xe0) // cdrom
-    {
-        sector_size = 2048;
-    }
+    const uint16_t sector_size = get_boot_device_sector_size();
     uint8_t *buffer8 = buffer;
     uint32_t lba_rest = lba + (count & ~31);
     uint8_t *buffer_rest = buffer8 + (count & ~31) * sector_size;
@@ -113,4 +110,25 @@ int read_memory_map(bios_memory_map_t *buffer)
         return 0;
     }
     return size;
+}
+
+int get_drive_params(uint8_t dev, drive_params_t *buffer)
+{
+    buffer->size = sizeof(drive_params_t);
+    buffer->flags = 0;
+    return bios_function(FUNCTION_DRIVE_PARAMS, dev, (uint32_t)buffer);
+}
+
+uint16_t get_boot_device_sector_size()
+{
+    static drive_params_t dp;
+    if (dp.size == 0) // not initialized
+    {
+        if (get_drive_params(boot_device, &dp) != OK)
+        {
+            dp.size = 0;
+            return 0;
+        }
+    }
+    return dp.sector_size;
 }

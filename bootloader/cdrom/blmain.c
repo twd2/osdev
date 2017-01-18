@@ -30,34 +30,9 @@ void free(void *ptr)
 
 }
 
-int print_hex(uint32_t x)
-{
-#define HEX_COUNT (sizeof(x) * 2)
-    static char buffer[HEX_COUNT + 3] = { '0', 'x', 0 };
-    utoh(x, &buffer[2]);
-#undef HEX_COUNT
-    return print(buffer);
-}
-
-int print_bin(uint32_t x)
-{
-#define BIT_COUNT (sizeof(x) * 8)
-    static char buffer[BIT_COUNT + 3] = { '0', 'b', 0 };
-    utob(x, &buffer[2]);
-#undef BIT_COUNT
-    return print(buffer);
-}
-
-int print_int(int32_t x)
-{
-    static char buffer[12] = { 0 }; // -2 147 483 647, 11 chars
-    itos(x, buffer);
-    return print(buffer);
-}
-
 void load_memory_map()
 {
-    static bios_memory_map_t mem[12];
+    static bios_memory_map_t mem[16];
     print("Loading system memory map... ");
     int count = read_memory_map(mem);
     if (!count)
@@ -146,11 +121,12 @@ void die(const char *str)
     }
 }
 
-void *read_extent(directory_record_t *file, void *buffer)
+void *read_all_extent(directory_record_t *file, void *buffer)
 {
-    uint32_t file_lba = file->extent_location, file_length = file->data_length;
-    //                                         ceiling((file_length + 2047) / 2048)
-    read_sector(boot_device, file_lba, buffer, ((file_length + 2047) >> 11));
+    const uint16_t sector_size = get_boot_device_sector_size();
+    const uint32_t file_lba = file->extent_location, file_length = file->data_length;
+    //                                         ceiling(file_length / 2048)
+    read_sector(boot_device, file_lba, buffer, ((file_length - 1 + sector_size) / sector_size));
     return (void *)((uint8_t *)buffer + file_length);
 }
 
@@ -198,7 +174,7 @@ directory_record_t *find_file(const char *path)
         return &pvd->root_directory;
     }
 
-    directory_record_t *end = read_extent(&pvd->root_directory, sector_buffer);
+    directory_record_t *end = read_all_extent(&pvd->root_directory, sector_buffer);
     directory_record_t *begin = sector_buffer;
     print(".");
 
@@ -219,7 +195,7 @@ directory_record_t *find_file(const char *path)
         }
 
         // TODO: check file flags
-        end = read_extent(rec, sector_buffer);
+        end = read_all_extent(rec, sector_buffer);
         begin = sector_buffer;
         print(".");
     }
@@ -261,6 +237,7 @@ typedef void (*kernel_entry_t)();
 
 kernel_entry_t load_kernel()
 {
+    const uint16_t sector_size = get_boot_device_sector_size();
     print("Loading kernel ");
     print(kernel_file);
     print(".");
