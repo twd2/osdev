@@ -159,6 +159,8 @@ bios_function:
   [bits 32]
 
   _return_to32:
+  cli
+
   mov ax, selector_data
   mov ds, ax
   mov es, ax

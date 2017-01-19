@@ -81,6 +81,8 @@ selector_data16 equ ((gdt32_data16 - gdt32_ptr) | SELECTOR_GDT | SELECTOR_RPL0)
 
 [bits 32]
 _start32:
+cli
+
 mov ax, selector_data
 mov ds, ax
 mov es, ax
