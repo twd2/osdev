@@ -23,11 +23,11 @@ inline uint8_t keyboard_read()
 void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
     uint8_t scancode = keyboard_read();
-    tty_set_current(default_tty);
+    /*tty_set_current(default_tty);
     kprint("[KEYBOARD] ");
     kprint_hex(scancode);
     kprint("\n");
-    tty_set_current(NULL);
+    tty_set_current(NULL);*/
     // TODO: extend code
     switch (scancode)
     {

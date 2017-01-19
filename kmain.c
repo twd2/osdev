@@ -9,13 +9,14 @@
 #include <driver/clock.h>
 #include <driver/keyboard.h>
 #include <process.h>
+#include <syscall_impl.h>
 
 extern uint8_t end_of_kernel;
 void *free_mem_start = &end_of_kernel;
 void *free_mem_end = NULL; // [free_mem_start, free_mem_end)
 uint32_t memory_map_count;
 memory_map_t memory_map[16];
-static uint8_t process_stack[0x3000];
+static uint8_t process_stack[0x4000];
 
 void delay(int x)
 {
@@ -42,7 +43,6 @@ void process1()
     uint8_t i = 0;
     while (true)
     {
-        //asm("hlt");
         ktty_enter();
         kprint("My PID=");
         kprint_int(get_pid());
@@ -50,6 +50,7 @@ void process1()
         kprint_int(++i);
         kprint(" ");
         ktty_leave();
+        //sys_delay(1);
         //delay(1);
     }
     // TODO: sys_exit
@@ -77,6 +78,7 @@ void process2()
         kprint_int(++i);
         kprint(" ");
         ktty_leave();
+        //sys_delay(2);
         //delay(2);
     }
     // TODO: sys_exit
@@ -86,7 +88,9 @@ void process3()
 {
     kprint("My PID=");
     kprint_int(get_pid());
-    kprint("\nThis is tty 3.\n");
+    kprint("\nThis is tty ");
+    kprint_int(get_ttyid() + 1);
+    kprint(".\n");
     while (true)
     {
         sys_yield();
@@ -173,15 +177,10 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         init_tty();
         kclear();
         kprint("WDOS [version 0.0]\nMust boot from a multiboot bootloader.\n");
-        asm("cli");
-        for (;;)
-        {
-            asm("hlt");
-        }
         return 0xdeadbeef;
     }
 
-    free_mem_end = (void *)(mb_info->mem_upper << 10) + 0x100000;
+    free_mem_end = (void *)((mb_info->mem_upper << 10) + 0x100000);
 
     init_tty();
     kclear();
@@ -208,8 +207,12 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     kprint_ok_fail("[KDEBUG] init keyboard", true);
     init_keyboard();
 
+    init_syscall_impl();
+
     kprint_ok_fail("[KDEBUG] init process scheduler", true);
     init_process();
+
+    init_idle();
 
     tty_switch(default_tty + 1);
     uint32_t kpid = process_create("kernel", SELECTOR_KERNEL_CODE, &process1,
@@ -222,7 +225,13 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     tty_switch(default_tty + 3);
     uint32_t spid = process_create("shell", SELECTOR_USER_CODE, &process3,
                                    SELECTOR_USER_DATA, &process_stack[0x3000]);
+    tty_switch(default_tty + 4);
+    uint32_t s2pid = process_create("shell", SELECTOR_USER_CODE, &process3,
+                                    SELECTOR_USER_DATA, &process_stack[0x4000]);
     tty_switch(default_tty);
+
+    kprint(TTY_SET_COLOR "\013hello, world\n" TTY_SET_COLOR TTY_DEFAULT_COLOR);
+
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
 

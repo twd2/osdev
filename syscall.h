@@ -5,22 +5,17 @@
 
 #define SYSCALL_INTERRUPT "$0x80"
 
-uint32_t syscall0(uint32_t);
-uint32_t syscall1(uint32_t, uint32_t);
-uint32_t syscall2(uint32_t, uint32_t, uint32_t);
-uint32_t syscall3(uint32_t, uint32_t, uint32_t, uint32_t);
-uint32_t syscall4(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-uint32_t syscall5(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-uint32_t syscall6(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-
 #define SYS_exit 0
 #define SYS_test 1
 #define SYS_add 2
 #define SYS_yield 3
+#define SYS_delay 4
+#define SYSCALL_COUNT 256
 
-void sys_exit(int);
+void sys_exit(int exitcode);
 int sys_test();
-int sys_add(int, int);
+int sys_add(int a, int b);
 void sys_yield();
+void sys_delay(int x);
 
 #endif // _WDOS_SYSCALL_H_

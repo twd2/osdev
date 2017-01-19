@@ -2,6 +2,7 @@
 #include <tty.h>
 #include <driver/8259a.h>
 #include <process.h>
+#include <syscall_impl.h>
 
 const char *const cpu_exception_strings[INTERRUPT_EXCEPTION_COUNT] =
 {
@@ -45,24 +46,8 @@ void interrupt_handler(uint8_t vec, interrupt_frame_t frame)
 {
     if (vec == INTERRUPT_VECTOR_SYSCALL)
     {
-        // TODO
-        if (frame.eax == 0) // exit
-        {
-            
-        }
-        else if (frame.eax == 1) // test
-        {
-            frame.eax = 0x900dbeef;
-        }
-        else if (frame.eax == 2) // add
-        {
-            frame.eax = frame.ebx + frame.ecx;
-        }
-        else if (frame.eax == 3) // yield
-        {
-            irq_handlers[0](0, &frame);
-        }
-        else
+        syscall_dispatch(frame.eax, &frame);
+        /* TODO
         {
             frame.eax = 0xdeadbeef;
             tty_set_current(default_tty);
@@ -70,7 +55,7 @@ void interrupt_handler(uint8_t vec, interrupt_frame_t frame)
             kprint_int(frame.eax);
             kprint("\n");
             tty_set_current(NULL);
-        }
+        }*/
     }
     else if (vec < INTERRUPT_EXCEPTION_COUNT) // cpu exception
     {
@@ -158,14 +143,4 @@ inline void irq_dispatch(uint8_t irq, interrupt_frame_t *frame)
 void register_irq_handler(uint8_t irq, irq_handler_t handler)
 {
     irq_handlers[irq] = handler;
-}
-
-inline void enable_interrupt()
-{
-    asm("sti");
-}
-
-inline void disable_interrupt()
-{
-    asm("cli");
 }

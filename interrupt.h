@@ -56,12 +56,13 @@ typedef struct interrupt_frame
 #define IRQ_LPT1 5
 #define IRQ_FDD 6
 #define IRQ_LPT2 7
-#define IRQ_CMOSALTER 8
+#define IRQ_CMOS_ALTER 8
 #define IRQ_MOUSE 12
 #define IRQ_FPU 13
 #define IRQ_IDE0 14
 #define IRQ_IDE1 15
 
+// loader.asm
 void interrupt_wrapper_0();
 void interrupt_wrapper_1();
 void interrupt_wrapper_2();
@@ -114,14 +115,14 @@ void interrupt_wrapper_47();
 
 void interrupt_wrapper_128();
 
-extern const char *const cpu_exception_strings[32];
+extern const char *const cpu_exception_strings[INTERRUPT_EXCEPTION_COUNT];
 
 typedef void (*irq_handler_t)(uint8_t, interrupt_frame_t*);
 
 void interrupt_handler(uint8_t vec, interrupt_frame_t frame);
 void irq_dispatch(uint8_t irq, interrupt_frame_t *frame);
 void register_irq_handler(uint8_t irq, irq_handler_t handler);
-void enable_interrupt();
-void disable_interrupt();
+#define enable_interrupt() asm volatile ("sti")
+#define disable_interrupt() asm volatile ("cli")
 
 #endif // _WDOS_KERNEL_INTERRUPT_H_

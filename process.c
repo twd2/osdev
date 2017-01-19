@@ -8,11 +8,16 @@
 static process_t processes[16];
 static uint32_t process_count = 0;
 static uint32_t current_process = -1;
-static bool process_lock = false;
+static volatile bool process_lock = false;
 
 uint32_t get_pid()
 {
     return current_process;
+}
+
+uint32_t get_ttyid()
+{
+    return process_current()->tty - default_tty;
 }
 
 void init_process()
@@ -48,7 +53,7 @@ process_t *process_current()
     dest->cs = src->cs; \
     dest->eflags = (dest->eflags & ~EFLAGS_MASK) | (src->eflags & EFLAGS_MASK);
 
-// only appear when cs.cpl != 0
+// only appear when cs.RPL != 0
 #define MOVE_OPTIONAL_REGISTERS(dest, src) \
     dest->esp = src->esp; \
     dest->ss = src->ss;
@@ -153,6 +158,35 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
         frame->ds = frame->es = frame->fs = frame->gs = stack_seg;
         proc->registers.isr_esp = (uint32_t)&frame->SECOND_REGISTER;
     }
+    process_lock = false;
+    return process_count - 1;
+}
+
+uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_point, void *stack)
+{
+    if (process_count >= 16)
+    {
+        kprint_ok_fail("[KDEBUG] create process failed: process limit exceeded", false);
+        return -1;
+    }
+    process_lock = true;
+    process_t *proc = &processes[process_count];
+    ++process_count;
+    strcpy(proc->name, name);
+    proc->tty = tty_current_screen();
+    proc->registers.cs = SELECTOR_KERNEL_CODE;
+    proc->registers.eip = (uint32_t)entry_point;
+    proc->registers.ss = SELECTOR_KERNEL_DATA;
+    proc->registers.esp = (uint32_t)stack;
+    proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs =
+        SELECTOR_KERNEL_DATA;
+    // allocate interrupt_frame
+    interrupt_frame_t *frame = (interrupt_frame_t *)(stack - sizeof(interrupt_frame_t));
+    frame->isr_esp = proc->registers.isr_esp;
+    frame->cs = SELECTOR_KERNEL_CODE;
+    frame->eip = proc->registers.eip;
+    frame->ds = frame->es = frame->fs = frame->gs = SELECTOR_KERNEL_DATA;
+    proc->registers.isr_esp = (uint32_t)&frame->SECOND_REGISTER;
     process_lock = false;
     return process_count - 1;
 }

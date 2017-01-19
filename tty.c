@@ -142,7 +142,7 @@ uint32_t tty_print(tty_t *tty, const char *str)
     uint32_t i = 0;
     for (; str[i] != '\0'; ++i)
     {
-        if (str[i] == 0x01) // command: set color
+        if (str[i] == TTY_CMD_SET_COLOR)
         {
             ++i;
             tty->color = str[i];
@@ -150,6 +150,10 @@ uint32_t tty_print(tty_t *tty, const char *str)
         else if (str[i] == '\n')
         {
             tty_newline(tty);
+        }
+        else if (str[i] == '\r')
+        {
+
         }
         else
         {

@@ -3,7 +3,7 @@
 
 #include <runtime/types.h>
 
-// #define NDEBUG 1
+#define NDEBUG 1
 #define STAGE2_LOAD_ADDRESS 0x10000
 #define SEGMENT_LIMIT 0xffff
 #define LOW_MEMORY_BASE 0

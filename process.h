@@ -18,6 +18,7 @@ typedef struct process
 typedef void (*entry_point_t)();
 
 uint32_t get_pid();
+uint32_t get_ttyid();
 void init_process();
 process_t *process_current();
 void process_schedule();

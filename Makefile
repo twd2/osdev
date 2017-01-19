@@ -47,7 +47,13 @@ syscall.o: syscall.c
 io.o: io.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
+syscall_impl.o: syscall_impl.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 process.o: process.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+idle.o: idle.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 driver/8259a.o: driver/8259a.c
@@ -68,7 +74,7 @@ stdlib/memory.o: stdlib/memory.c
 stdlib/string.o: stdlib/string.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o process.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o
+kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 grub.iso: kernel.elf iso/boot/grub/grub.cfg

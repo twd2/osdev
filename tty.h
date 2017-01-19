@@ -28,6 +28,10 @@
 #define TTY_HEIGHT VGA_HEIGHT
 #define TTY_COUNT 8
 
+#define TTY_CMD_SET_COLOR 0x01
+#define TTY_SET_COLOR "\001"
+#define TTY_DEFAULT_COLOR "\007"
+
 typedef struct tty
 {
     volatile bool lock;
