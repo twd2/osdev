@@ -18,13 +18,13 @@ inline void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset)
 {
     // linear to seg:offset
     // 0x8abcd -> 0x8abc:000d
-    *out_seg = ((uint32_t)addr & 0xFFFFFFF0) >> 4;
-    *out_offset = (uint32_t)addr & 0x000F;
+    *out_seg = ((uintptr_t)addr & 0xFFFFFFF0) >> 4;
+    *out_offset = (uintptr_t)addr & 0x000F;
 }
 
 int print(const char *str)
 {
-    if (!(0x10000 <= (uint32_t)str && (uint32_t)str <= 0x1ffff))
+    if (!(0x10000 <= (uintptr_t)str && (uintptr_t)str <= 0x1ffff))
     {
         die("Argument for str is out of range.\r\n");
     }
@@ -109,7 +109,7 @@ inline static int _read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest
 
 int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 {
-    if ((uint32_t)buffer > 0xfffff)
+    if ((uintptr_t)buffer > 0xfffff)
     {
         die("Argument for buffer is out of range.\r\n");
     }
@@ -136,7 +136,7 @@ int read_sector(uint8_t dev, uint32_t lba, void *buffer, uint16_t count)
 
 int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t count, void *buffer)
 {
-    if ((uint32_t)buffer > 0xfffff)
+    if ((uintptr_t)buffer > 0xfffff)
     {
         die("Argument for buffer is out of range.\r\n");
     }
@@ -164,7 +164,7 @@ int read_sector_high_memory(uint8_t dev, uint32_t lba, void *dest, uint16_t coun
 
 int read_memory_map(bios_memory_map_t *buffer)
 {
-    if (!(0x10000 <= (uint32_t)buffer && (uint32_t)buffer <= 0x1ffff))
+    if (!(0x10000 <= (uintptr_t)buffer && (uintptr_t)buffer <= 0x1ffff))
     {
         die("Argument for buffer is out of range.\r\n");
     }

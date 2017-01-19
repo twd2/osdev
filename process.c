@@ -79,7 +79,7 @@ static inline void load_registers(interrupt_frame_t *dest, interrupt_frame_t *sr
     {
         // save system flags
         src->eflags = (dest->eflags & ~EFLAGS_MASK) | (src->eflags & EFLAGS_MASK);
-        dest->isr_esp = (uint32_t)&src->SECOND_REGISTER;
+        dest->isr_esp = (uintptr_t)&src->SECOND_REGISTER;
     }
     else
     {
@@ -143,9 +143,9 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
     strcpy(proc->name, name);
     proc->tty = tty_current_screen();
     proc->registers.cs = entry_point_seg;
-    proc->registers.eip = (uint32_t)entry_point;
+    proc->registers.eip = (uintptr_t)entry_point;
     proc->registers.ss = stack_seg;
-    proc->registers.esp = (uint32_t)stack;
+    proc->registers.esp = (uintptr_t)stack;
     proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs = stack_seg;
     // process.cpl == 0
     if ((entry_point_seg & SELECTOR_RPL_MASK) == SELECTOR_RPL0)
@@ -156,7 +156,7 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
         frame->cs = proc->registers.cs;
         frame->eip = proc->registers.eip;
         frame->ds = frame->es = frame->fs = frame->gs = stack_seg;
-        proc->registers.isr_esp = (uint32_t)&frame->SECOND_REGISTER;
+        proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
     }
     process_lock = false;
     return process_count - 1;
@@ -175,9 +175,9 @@ uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_poin
     strcpy(proc->name, name);
     proc->tty = tty_current_screen();
     proc->registers.cs = SELECTOR_KERNEL_CODE;
-    proc->registers.eip = (uint32_t)entry_point;
+    proc->registers.eip = (uintptr_t)entry_point;
     proc->registers.ss = SELECTOR_KERNEL_DATA;
-    proc->registers.esp = (uint32_t)stack;
+    proc->registers.esp = (uintptr_t)stack;
     proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs =
         SELECTOR_KERNEL_DATA;
     // allocate interrupt_frame
@@ -186,7 +186,7 @@ uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_poin
     frame->cs = SELECTOR_KERNEL_CODE;
     frame->eip = proc->registers.eip;
     frame->ds = frame->es = frame->fs = frame->gs = SELECTOR_KERNEL_DATA;
-    proc->registers.isr_esp = (uint32_t)&frame->SECOND_REGISTER;
+    proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
     process_lock = false;
     return process_count - 1;
 }

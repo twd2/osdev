@@ -1,5 +1,5 @@
-#ifndef _WDOS_PM_H_
-#define _WDOS_PM_H_
+#ifndef _WDOS_KERNEL_PM_H_
+#define _WDOS_KERNEL_PM_H_
 
 #include <runtime/types.h>
 
@@ -83,4 +83,4 @@ void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t at
 void prepare_tss_gdt_entry();
 void prepare_idt();
 
-#endif // _WDOS_PM_H_
+#endif // _WDOS_KERNEL_PM_H_

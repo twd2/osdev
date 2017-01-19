@@ -459,7 +459,7 @@ void blmain()
 {
     print("Stage 1 booted successfully.\r\n");
 
-    if ((uint32_t)bss_end - STAGE2_LOAD_ADDRESS > SEGMENT_LIMIT)
+    if ((uintptr_t)bss_end - STAGE2_LOAD_ADDRESS > SEGMENT_LIMIT)
     {
         die("Section .bss is too long.\r\n");
     }

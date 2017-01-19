@@ -2,7 +2,7 @@ CC = gcc
 AS = nasm
 LD = ld
 
-CFLAGS = -g -m32 -fno-stack-protector -fno-builtin -fno-asynchronous-unwind-tables \
+CFLAGS = -O2 -m32 -fno-stack-protector -fno-builtin -fno-asynchronous-unwind-tables \
          -nostdlib -nostdinc -Wall -Wextra -I. -I../../
 ASFLAGS = -felf32
 LDFLAGS = -z max-page-size=0x1000 -melf_i386 -T linker.ld

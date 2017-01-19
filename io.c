@@ -1,6 +1,6 @@
 #include <io.h>
 
-inline void outb(uint16_t port, uint8_t value)
+void outb(uint16_t port, uint8_t value)
 {
     asm volatile ("out %%al, %%dx"
         :
@@ -8,7 +8,7 @@ inline void outb(uint16_t port, uint8_t value)
        );
 }
 
-inline void outw(uint16_t port, uint16_t value)
+void outw(uint16_t port, uint16_t value)
 {
     asm volatile ("out %%ax, %%dx"
         :
@@ -16,7 +16,7 @@ inline void outw(uint16_t port, uint16_t value)
        );
 }
 
-inline void outdw(uint16_t port, uint32_t value)
+void outdw(uint16_t port, uint32_t value)
 {
     asm volatile ("out %%eax, %%dx"
         :
@@ -24,7 +24,7 @@ inline void outdw(uint16_t port, uint32_t value)
        );
 }
 
-inline uint8_t inb(uint16_t port)
+uint8_t inb(uint16_t port)
 {
     uint8_t ret;
     asm volatile ("xor %%eax, %%eax\n"
@@ -35,7 +35,7 @@ inline uint8_t inb(uint16_t port)
    return ret;
 }
 
-inline uint16_t inw(uint16_t port)
+uint16_t inw(uint16_t port)
 {
     uint16_t ret;
     asm volatile ("xor %%eax, %%eax\n"
@@ -46,7 +46,7 @@ inline uint16_t inw(uint16_t port)
    return ret;
 }
 
-inline uint32_t indw(uint16_t port)
+uint32_t indw(uint16_t port)
 {
     uint32_t ret;
     asm volatile ("in %%dx, %%eax"

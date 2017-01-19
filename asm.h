@@ -1,5 +1,5 @@
-#ifndef _WDOS_ASM_H_
-#define _WDOS_ASM_H_
+#ifndef _WDOS_KERNEL_ASM_H_
+#define _WDOS_KERNEL_ASM_H_
 
 #include <runtime/types.h>
 #include <pm.h>
@@ -18,4 +18,4 @@ extern const uint32_t TSS_LENGTH;
 void enter_ring3();
 uint32_t get_eflags();
 
-#endif // _WDOS_ASM_H_
+#endif // _WDOS_KERNEL_ASM_H_

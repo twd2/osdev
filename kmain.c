@@ -10,6 +10,7 @@
 #include <driver/keyboard.h>
 #include <process.h>
 #include <syscall_impl.h>
+#include <idle.h>
 
 extern uint8_t end_of_kernel;
 void *free_mem_start = &end_of_kernel;

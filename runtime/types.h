@@ -1,7 +1,7 @@
 #ifndef _WDOS_RUNTIME_TYPES_H_
 #define _WDOS_RUNTIME_TYPES_H_
 
-#define NULL 0
+#define NULL ((void *)0)
 
 #ifdef X86_64
 
@@ -37,9 +37,13 @@ typedef s64 ptrdiff_t;
 
 typedef u64 size_t;
 
+// register type
+typedef u64 ureg_t;
+typedef s64 reg_t;
+
 #else
 
-// 32
+// 32-bit system
 
 typedef unsigned char       u8;
 typedef unsigned short      u16;
@@ -69,6 +73,10 @@ typedef u32 uintptr_t;
 typedef s32 ptrdiff_t;
 
 typedef u32 size_t;
+
+// register type
+typedef u32 ureg_t;
+typedef s32 reg_t;
 
 #endif
 

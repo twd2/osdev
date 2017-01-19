@@ -58,7 +58,7 @@ static void register_syscall_handler(uint32_t id, syscall_handler_t handler, uin
 void init_syscall_impl()
 {
 #define REGISTER(func, params_count) \
-    register_syscall_handler(SYS_##func, &do_##func, params_count)
+    register_syscall_handler(SYS_##func, (syscall_handler_t)&do_##func, params_count)
 
     REGISTER(exit, 1);
     REGISTER(test, 0);
