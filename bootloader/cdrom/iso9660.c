@@ -4,14 +4,14 @@
 
 directory_record_t *next_record(directory_record_t *ptr)
 {
-    return ((uint8_t *)ptr) + ptr->length;
+    return (directory_record_t *)(((uint8_t *)ptr) + ptr->length);
 }
 
 directory_record_t *find_record(const char *pattern, directory_record_t *begin, directory_record_t *end)
 {
     for (directory_record_t *iter = begin; iter->length && iter < end; iter = next_record(iter))
     {
-        if (ident_cmp(pattern, iter->ident_length, &iter->ident))
+        if (ident_cmp(pattern, iter->ident_length, iter->ident))
         {
             return iter;
         }

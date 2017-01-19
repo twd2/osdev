@@ -5,8 +5,13 @@
 
 #define assert(x) do { if (!(x)) die("\r\nAssertion failed.\r\n"); } while (0)
 
-void *malloc(uint32_t size); // a shabby malloc :)
-void free(void *ptr);
+#ifndef NDEBUG
+void debug_pause();
+#else
+#define debug_pause() do { } while (0)
+#endif
+
+void *palloc(uint32_t size); // p means physical, permanent
 void die(const char *str);
 
 #define is_power_of_2(x) (!((x) & ((x) - 1)))

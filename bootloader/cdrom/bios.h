@@ -73,7 +73,7 @@ typedef struct drive_params
     uint16_t sector_size;
 } __attribute__((packed)) drive_params_t;
 
-extern uint8_t boot_device;
+extern uint8_t boot_device; // stage2.asm
 
 void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset);
 int print(const char *str); // str must be in [0x10000, 0x1ffff]

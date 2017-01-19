@@ -4,16 +4,11 @@
 #include <stdlib/memory.h>
 #include <stdlib/string.h>
 
+#include "config.h"
 #include "util.h"
 #include "bios.h"
 #include "iso9660.h"
 #include "elf.h"
-
-// #define NDEBUG 1
-#define LOW_MEMORY_BASE 0
-#define LOW_MEMORY_LIMIT (0xa0000 - 1)
-#define HIGH_MEMORY_BASE 0x100000
-#define MULTIBOOT_UNSUPPORTED_FLAGS (~0b10)
 
 extern uint8_t _bss_begin, _bss_end;
 void *bss_begin = &_bss_begin, *bss_end = &_bss_end;
@@ -23,19 +18,9 @@ const char *const kernel_file = "/boot/kernel.elf";
 
 char kernel_cmdline[256];
 uint32_t memory_map_count;
-bios_memory_map_t memory_map[16];
+bios_memory_map_t memory_map[32];
 void *const sector_buffer = (void *)0x20000; // length: 64 KiB
 multiboot_info_t mb_info;
-
-#ifndef NDEBUG
-void debug_pause()
-{
-    print("Press any key to continue...\r\n");
-    getchar();
-}
-#else
-#define debug_pause() do { } while (0)
-#endif
 
 void load_memory_map()
 {
@@ -55,7 +40,7 @@ void load_memory_map()
 #ifndef X86_64
     bool has_warning = false;
 #endif
-    for (int i = 0; i < memory_map_count; ++i)
+    for (uint32_t i = 0; i < memory_map_count; ++i)
     {
         uint64_t limit = memory_map[i].base - 1 + memory_map[i].length;
         uint32_t limit_low = memory_map[i].base_low - 1 + memory_map[i].length_low;
@@ -96,6 +81,10 @@ void load_memory_map()
             print("      NO");
         }
         print("\r\n");
+        if ((i & 0xf) == 0xf)
+        {
+            debug_pause();
+        }
     }
 #ifndef X86_64
     if (has_warning)
@@ -112,16 +101,17 @@ void load_memory_map()
 
 void fill_multiboot_info()
 {
-    mb_info.flags = 0b1000111; // has mem_lower, mem_upper, boot_device, cmdline and mmap_*
+    mb_info.flags = MULTIBOOT_FLAGS;
     // mem_lower and mem_upper are filled by load_memory_map()
-    mb_info.boot_device = ((uint32_t)boot_device << 24) | 0xffffff; // ???
+    mb_info.boot_device = MKBOOT_DEVICE(boot_device, UNUSED_PARTITION,
+                                        UNUSED_PARTITION, UNUSED_PARTITION);
     mb_info.cmdline = (uint32_t)kernel_cmdline;
 
     // copy memory_map
     assert(memory_map_count);
     mb_info.mmap_length = memory_map_count * sizeof(memory_map_t);
-    memory_map_t *mb_mmap = malloc(mb_info.mmap_length);
-    for (int i = 0; i < memory_map_count; ++i)
+    memory_map_t *mb_mmap = (memory_map_t *)palloc(mb_info.mmap_length);
+    for (uint32_t i = 0; i < memory_map_count; ++i)
     {
         mb_mmap[i].size = sizeof(mb_mmap[i]) - sizeof(mb_mmap[i].size);
         mb_mmap[i].base_addr_low = memory_map[i].base_low;
@@ -137,9 +127,12 @@ void *read_all_extent(directory_record_t *file, void *buffer)
 {
     const uint16_t sector_size = get_boot_device_sector_size();
     const uint32_t file_lba = file->extent_location, file_length = file->data_length;
-    //                                         ceiling(file_length / 2048)
-    assert(read_sector(boot_device, file_lba, buffer,
-                       ((file_length - 1 + sector_size) / sector_size)) == OK);
+
+    if (read_sector(boot_device, file_lba, buffer,
+                    ((file_length - 1 + sector_size) / sector_size)) != OK)
+    {
+        die("\r\nRead error.\r\n");
+    }
     return (void *)((uint8_t *)buffer + file_length);
 }
 
@@ -156,11 +149,13 @@ directory_record_t *find_file(const char *path)
     {
         read_sector(boot_device, lba, sector_buffer, 1); // might fail
         print(".");
+
         // check magic "CD001"
         if (memcmp(pvd->std_ident, ISO9660_MAGIC, ISO9660_MAGIC_LENGTH))
         {
             die("\r\nInvalid CD-ROM.\r\n");
         }
+
         if (pvd->type == VD_TYPE_PRIMARY)
         {
             // found
@@ -184,7 +179,8 @@ directory_record_t *find_file(const char *path)
 
     if (!*iter) // path == "/"
     {
-        return &pvd->root_directory;
+        // "/" is not a file.
+        return NULL;
     }
 
     directory_record_t *end = read_all_extent(&pvd->root_directory, sector_buffer);
@@ -198,17 +194,26 @@ directory_record_t *find_file(const char *path)
         to_ident(ident);
 
         directory_record_t *rec = find_record(ident, begin, end);
-        if (!rec)
+        if (!rec) // not found
         {
             return NULL;
         }
-        
+
         if (!iter) // is last
         {
+            if (rec->flags & ISO9660_FLAG_DIRECTORY)
+            {
+                // not a file
+                return NULL;
+            }
             return rec;
         }
 
-        // TODO: check file/directory flags
+        if (!(rec->flags & ISO9660_FLAG_DIRECTORY))
+        {
+            // not a directory
+            return NULL;
+        }
         end = read_all_extent(rec, sector_buffer); // next level
         begin = sector_buffer;
         print(".");
@@ -263,6 +268,7 @@ int load_segment(uint32_t lba, uint32_t offset, void *dest, uint32_t length)
     {
         return ret;
     }
+    print(".");
 
     if (length <= sector_size - offset)
     {
@@ -284,17 +290,21 @@ int load_segment(uint32_t lba, uint32_t offset, void *dest, uint32_t length)
     {
         return ret;
     }
+    print(".");
     lba += length / sector_size;
     dest = (void *)((uint8_t *)dest + (length - length % sector_size));
     length = length % sector_size;
 
     ret = read_sector(boot_device, lba, sector_buffer, 1); // last sector
+    if (ret != OK)
+    {
+        return ret;
+    }
+    print(".");
     memcpy(dest, sector_buffer, length % sector_size);
 
     return OK;
 }
-
-typedef void (*kernel_entry_t)();
 
 kernel_entry_t load_kernel()
 {
@@ -329,7 +339,7 @@ kernel_entry_t load_kernel()
         die("\r\nNot an executable ELF file.\r\n");
     }
 
-    kernel_entry_t kernel_entry = elf_header.e_entry;
+    kernel_entry_t kernel_entry = (kernel_entry_t)elf_header.e_entry;
     uint8_t code[] = { 0xeb, 0xfe /* jmp $ */, 0xcc /* int3 */ }; // default kernel code
     memcpy(kernel_entry, code, sizeof(code));
 
@@ -341,7 +351,7 @@ kernel_entry_t load_kernel()
     assert(elf_header.e_phentsize == sizeof(Elf32_Phdr));
 
     Elf32_Phdr *program_header =
-        (Elf32_Phdr *)malloc(elf_header.e_phentsize * elf_header.e_phnum);
+        (Elf32_Phdr *)palloc(elf_header.e_phentsize * elf_header.e_phnum);
     memcpy(program_header, (uint8_t *)sector_buffer + elf_header.e_phoff,
            elf_header.e_phentsize * elf_header.e_phnum);
 
@@ -417,13 +427,17 @@ kernel_entry_t load_kernel()
             print("Loading ");
             print_byte((uint8_t)i);
             print(".");
-            load_segment(elf_lba + program_header[i].p_offset / sector_size,
-                         program_header[i].p_offset % sector_size,
-                         (void *)program_header[i].p_paddr,
-                         program_header[i].p_filesz);
+            int ret = load_segment(elf_lba + program_header[i].p_offset / sector_size,
+                                   program_header[i].p_offset % sector_size,
+                                   (void *)program_header[i].p_paddr,
+                                   program_header[i].p_filesz);
+            if (ret != OK)
+            {
+                die("\r\nRead error.\r\n");
+            }
             if (program_header[i].p_filesz < program_header[i].p_memsz)
             {
-                memset(program_header[i].p_paddr + program_header[i].p_filesz,
+                memset((void *)(program_header[i].p_paddr + program_header[i].p_filesz),
                        0, program_header[i].p_memsz - program_header[i].p_filesz);
                 print("init .bss");
             }
@@ -436,16 +450,16 @@ kernel_entry_t load_kernel()
 
 void jmp_kernel(kernel_entry_t kernel_entry, uint32_t mb_magic, multiboot_info_t *mb_info)
 {
-    asm("jmp *%%ecx"
-        : 
-        : "c"(kernel_entry), "a"(mb_magic), "b"(mb_info));
+    asm volatile ("jmp *%%ecx"
+                  :
+                  : "c"(kernel_entry), "a"(mb_magic), "b"(mb_info));
 }
 
 void blmain()
 {
     print("Stage 1 booted successfully.\r\n");
 
-    if ((uint32_t)bss_end > 0x1ffff)
+    if ((uint32_t)bss_end - STAGE2_LOAD_ADDRESS > SEGMENT_LIMIT)
     {
         die("Section .bss is too long.\r\n");
     }

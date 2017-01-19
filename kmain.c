@@ -153,7 +153,7 @@ void print_mem_info()
     kprint_int(memory_map_count);
     kprint("\n");
     memory_map_long_t *mmapl = (memory_map_long_t *)memory_map;
-    for (int i = 0; i < memory_map_count; ++i)
+    for (uint32_t i = 0; i < memory_map_count; ++i)
     {
         kprint("[KDEBUG] ");
         kprint_int(i);
@@ -218,7 +218,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     tty_switch(default_tty + 2);
     uint32_t ipid = process_create("init", SELECTOR_USER_CODE, &process2,
                                    SELECTOR_USER_DATA, &process_stack[0x2000]);
-    kprint_ok_fail("[KDEBUG] create init process", kpid != (uint32_t)-1);
+    kprint_ok_fail("[KDEBUG] create init process", ipid != (uint32_t)-1);
     tty_switch(default_tty + 3);
     uint32_t spid = process_create("shell", SELECTOR_USER_CODE, &process3,
                                    SELECTOR_USER_DATA, &process_stack[0x3000]);

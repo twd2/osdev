@@ -1,5 +1,8 @@
 #include "bios.h"
 
+#include <stdlib/memory.h>
+#include <stdlib/string.h>
+
 #include "util.h"
 
 #define FUNCTION_PRINT 1

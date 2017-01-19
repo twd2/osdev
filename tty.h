@@ -30,7 +30,7 @@
 
 typedef struct tty
 {
-    bool lock;
+    volatile bool lock;
     uint8_t x, y, color;
     uint16_t *mem;
 } tty_t;

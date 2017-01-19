@@ -2,17 +2,20 @@
 
 #include "bios.h"
 
-void *malloc(uint32_t size)
+#ifndef NDEBUG
+void debug_pause()
+{
+    print("Press any key to continue...\r\n");
+    getchar();
+}
+#endif
+
+void *palloc(uint32_t size)
 {
     static uint8_t *buffer = (void *)0x30000;
     uint8_t *old_buffer = buffer;
     buffer += size;
-    return old_buffer;
-}
-
-void free(void *ptr)
-{
-
+    return (void *)old_buffer;
 }
 
 void die(const char *str)

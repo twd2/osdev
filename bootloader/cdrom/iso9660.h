@@ -3,13 +3,15 @@
 
 #include <runtime/types.h>
 
+#define FIRST_LBA 16
+
 #define ISO9660_MAGIC "CD001"
 #define ISO9660_MAGIC_LENGTH 5
 
 #define VD_TYPE_PRIMARY 0x01
 #define VD_TYPE_TERMINATOR 0xff
 
-#define FIRST_LBA 16
+#define ISO9660_FLAG_DIRECTORY 0b10
 
 typedef struct directory_record
 {
