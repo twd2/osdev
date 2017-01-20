@@ -23,10 +23,14 @@ typedef struct page_list
 void page_list_init(page_list_t *list, page_node_t *data);
 page_node_t *page_list_alloc_node(page_list_t *list);
 void page_list_insert_as_prev(page_list_t *list, page_node_t *node, page_node_t *next);
-void *page_list_remove_node(page_list_t *list, page_node_t *node); // returns page
-page_node_t *page_list_last_node(page_list_t *list); // returns page
+void page_list_take_node(page_list_t *list, page_node_t *node); // breaks links
+page_node_t *page_list_last_node(page_list_t *list); // logic
+page_node_t *page_list_last_phy_node(page_list_t *list); // phy
 void page_list_swap_nodes(page_list_t *list, page_node_t *node1, page_node_t *node2);
-void *page_list_remove_last_node(page_list_t *list, page_node_t *node); // returns page
-page_node_t *page_list_find(page_list_t *list, void *page); // first greater than
+void *page_list_remove_last_phy_node(page_list_t *list); // returns page
+void *page_list_remove_node(page_list_t *list, page_node_t *node); // returns page
+page_node_t *page_list_find_gt(page_list_t *list, page_node_t *node); // first greater than
+page_node_t *page_list_insert(page_list_t *list, void *page);
+void page_list_update_position(page_list_t *list, page_node_t *node);
 
 #endif // _WDOS_KERNEL_MM_LIST_H_

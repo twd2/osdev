@@ -118,6 +118,7 @@ clean:
 	-rm *.elf
 	-rm *.iso
 	-rm driver/*.o
+	-rm mm/*.o
 	-rm stdlib/*.o
 	cd bootloader/cdrom && make clean
 	
