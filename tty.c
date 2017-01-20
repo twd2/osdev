@@ -143,15 +143,27 @@ uint32_t tty_print(tty_t *tty, const char *str)
         if (str[i] == TTY_CMD_SET_COLOR)
         {
             ++i;
+            if (str[i] == '\0')
+            {
+                break;
+            }
             tty->color = str[i];
         }
         else if (str[i] == '\n')
         {
+            // implies \r
             tty_newline(tty);
         }
         else if (str[i] == '\r')
         {
-
+            tty->x = 0;
+        }
+        else if (str[i] == '\b')
+        {
+            if (tty->x)
+            {
+                --tty->x;
+            }
         }
         else
         {
@@ -262,18 +274,14 @@ uint32_t kprint_ok_fail(const char *str, bool ok)
         kprint(" ");
     }
     uint8_t old_color = kget_color();
-    kprint("[");
     if (ok)
     {
-        kset_color(TTY_MKCOLOR(TTY_COLOR_GREEN, TTY_COLOR_BLACK));
-        kprint("OK");
+        kprint("[" TTY_SET_OK_COLOR "OK" TTY_SET_DEFAULT_COLOR "]");
     }
     else
     {
-        kset_color(TTY_MKCOLOR(TTY_COLOR_RED, TTY_COLOR_BLACK));
-        kprint("FAIL");
+        kprint("[" TTY_SET_FAIL_COLOR "FAIL" TTY_SET_DEFAULT_COLOR "]");
     }
     kset_color(old_color);
-    kprint("]");
     return TTY_WIDTH;
 }

@@ -237,9 +237,9 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     uint32_t s2pid = process_create("shell", SELECTOR_USER_CODE, &process3,
                                     SELECTOR_USER_DATA, &process_stack[0x7000],
                                     &process_stack[0x8000]);
-    tty_switch(default_tty + 2);
+    tty_switch(default_tty);
 
-    kprint(TTY_SET_COLOR "\013hello, world\n" TTY_SET_COLOR TTY_DEFAULT_COLOR);
+    kprint(TTY_SET_COLOR "\013hello, world\b\b\b\b\btwd2.\n" TTY_SET_COLOR TTY_DEFAULT_COLOR);
 
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
