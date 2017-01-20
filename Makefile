@@ -113,6 +113,7 @@ gdb:
 
 .PHONY: clean
 clean:
+	-rm *.d
 	-rm *.o
 	-rm *.elf
 	-rm *.iso
