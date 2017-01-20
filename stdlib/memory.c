@@ -56,39 +56,3 @@ int memcmp(const void *a, const void *b, uint32_t num)
     }
     return 0;
 }
-
-uint32_t strlen(const char *src)
-{
-    uint32_t length = 0;
-    while (*src)
-    {
-        ++length;
-        ++src;
-    }
-    return length;
-}
-
-uint32_t strcpy(char *dest, const char *src)
-{
-    return memcpy(dest, src, strlen(src) + 1) - 1;
-}
-
-const char *strsplit(const char *str, char delim, char *out_buffer)
-{
-    while (*str && *str != delim)
-    {
-        *out_buffer = *str;
-        ++str;
-        ++out_buffer;
-    }
-    *out_buffer = 0;
-    if (!*str)
-    {
-        return NULL; // no more
-    }
-    else if (*str == delim)
-    {
-        return str + 1;
-    }
-    return NULL;
-}

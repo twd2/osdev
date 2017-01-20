@@ -1,9 +1,10 @@
 #include "process.h"
+
 #include <asm.h>
 #include <pm.h>
 #include <interrupt.h>
 #include <tty.h>
-#include <stdlib/memory.h>
+#include <stdlib/string.h>
 
 static process_t processes[16];
 static uint32_t process_count = 0;

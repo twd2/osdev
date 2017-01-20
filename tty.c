@@ -228,7 +228,7 @@ uint8_t kprint_hex(uint32_t x)
 {
 #define HEX_COUNT (sizeof(x) * 2)
     kprint("0x");
-    char buffer[HEX_COUNT + 1] = { 0 };
+    char buffer[HEX_COUNT + 1] = { '\0' };
     utoh(x, buffer);
 #undef HEX_COUNT
     return kprint(buffer) + 2;
@@ -238,7 +238,7 @@ uint8_t kprint_bin(uint32_t x)
 {
 #define BIT_COUNT (sizeof(x) * 8)
     kprint("0b");
-    char buffer[BIT_COUNT + 1] = { 0 };
+    char buffer[BIT_COUNT + 1] = { '\0' };
     utob(x, buffer);
 #undef BIT_COUNT
     return kprint(buffer) + 2;
@@ -246,8 +246,15 @@ uint8_t kprint_bin(uint32_t x)
 
 uint8_t kprint_int(int32_t x)
 {
-    char buffer[12] = { 0 }; // -2 147 483 647, 11 chars
+    char buffer[12] = { '\0' }; // -2 147 483 647, 11 chars
     itos(x, buffer);
+    return kprint(buffer);
+}
+
+uint8_t kprint_uint(uint32_t x)
+{
+    char buffer[11] = { '\0' }; // 4 294 967 295, 10 chars
+    utos(x, buffer);
     return kprint(buffer);
 }
 
@@ -255,7 +262,7 @@ uint8_t kprint_hex_long(uint64_t x)
 {
 #define HEX_COUNT (sizeof(x) * 2)
     kprint("0x");
-    char buffer[HEX_COUNT + 1] = { 0 };
+    char buffer[HEX_COUNT + 1] = { '\0' };
     ultoh(x, buffer);
 #undef HEX_COUNT
     return kprint(buffer) + 2;

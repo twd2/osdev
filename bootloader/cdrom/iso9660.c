@@ -1,6 +1,7 @@
 #include "iso9660.h"
 
 #include <stdlib/memory.h>
+#include <stdlib/string.h>
 
 directory_record_t *next_record(directory_record_t *ptr)
 {

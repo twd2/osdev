@@ -1,4 +1,5 @@
 #include "string.h"
+#include "memory.h"
 
 uint8_t utoh(uint32_t x, char *buffer)
 {
@@ -47,36 +48,53 @@ uint8_t utob(uint32_t x, char *buffer)
 #undef BIT_COUNT
 }
 
+uint8_t ultob(uint64_t x, char *buffer)
+{
+#define BIT_COUNT (sizeof(x) * 8)
+    for (uint8_t i = 0; i < BIT_COUNT; ++i)
+    {
+        buffer[i] = (x & 0x8000000000000000ULL) ? '1' : '0';
+        x <<= 1;
+    }
+    buffer[BIT_COUNT] = 0;
+    return BIT_COUNT;
+#undef BIT_COUNT
+}
+
 uint8_t itos(int32_t x, char *buffer)
 {
     if (!x)
     {
         buffer[0] = '0';
-        buffer[1] = 0;
+        buffer[1] = '\0';
         return 1;
     }
+
     if (x == -2147483648)
     {
-        buffer[0] = '-';
-        buffer[1] = '2';
-        buffer[2] = '1';
-        buffer[3] = '4';
-        buffer[4] = '7';
-        buffer[5] = '4';
-        buffer[6] = '8';
-        buffer[7] = '3';
-        buffer[8] = '6';
-        buffer[9] = '4';
-        buffer[10] = '8';
-        buffer[11] = 0;
-        return 11;
+        return strcpy(buffer, "-2147483648");
     }
-    if (x < 0)
+
+    if (x > 0)
+    {
+        return utos((uint32_t)x, buffer);
+    }
+    else // x < 0
     {
         buffer[0] = '-';
-        ++buffer;
-        x = -x;
+        return utos((uint32_t)(-x), &buffer[1]) + 1;
     }
+}
+
+uint8_t utos(uint32_t x, char *buffer)
+{
+    if (!x)
+    {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return 1;
+    }
+
     uint8_t i = 0;
     while (x)
     {
@@ -93,7 +111,7 @@ uint8_t itos(int32_t x, char *buffer)
         buffer[j] = tmp;
     }
     
-    buffer[i] = 0;
+    buffer[i] = '\0';
     return i;
 }
 
@@ -112,4 +130,49 @@ uint8_t btoh(uint8_t x, char *buffer)
     buffer[HEX_COUNT] = 0;
     return HEX_COUNT;
 #undef HEX_COUNT
+}
+
+uint32_t strlen(const char *src)
+{
+    uint32_t length = 0;
+    while (*src)
+    {
+        ++length;
+        ++src;
+    }
+    return length;
+}
+
+uint32_t strcpy(char *dest, const char *src)
+{
+    uint32_t length = 0;
+    while (*src)
+    {
+        *dest = *src;
+        ++length;
+        ++src;
+        ++dest;
+    }
+    *dest = '\0';
+    return length;
+}
+
+const char *strsplit(const char *str, char delim, char *out_buffer)
+{
+    while (*str && *str != delim)
+    {
+        *out_buffer = *str;
+        ++str;
+        ++out_buffer;
+    }
+    *out_buffer = 0;
+    if (!*str)
+    {
+        return NULL; // no more
+    }
+    else if (*str == delim)
+    {
+        return str + 1;
+    }
+    return NULL;
 }

@@ -75,6 +75,7 @@ void kset_color(uint8_t color);
 void kput_char(char ch);
 uint32_t kprint(const char *str);
 uint8_t kprint_int(int32_t x);
+uint8_t kprint_uint(uint32_t x);
 uint8_t kprint_hex(uint32_t x);
 uint8_t kprint_bin(uint32_t x);
 uint8_t kprint_hex_long(uint64_t x);
