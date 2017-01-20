@@ -45,7 +45,7 @@ tty_t *tty_current_process()
 
 void tty_init(tty_t *tty)
 {
-    tty->lock = false;
+    spinlock_init(&tty->lock);
     tty->x = tty->y = 0;
     tty->color = TTY_COLOR_DEFAULT;
     tty->mem = NULL;
@@ -53,14 +53,12 @@ void tty_init(tty_t *tty)
 
 void tty_enter(tty_t *tty)
 {
-    while (tty->lock);
-    // if process switch here?
-    tty->lock = true;
+    spinlock_wait_and_lock(&tty->lock);
 }
 
 void tty_leave(tty_t *tty)
 {
-    tty->lock = false;
+    spinlock_release(&tty->lock);
 }
 
 void tty_switch(tty_t *tty)

@@ -185,6 +185,8 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
 
     free_mem_end = (void *)((mb_info->mem_upper << 10) + 0x100000);
 
+    init_pm();
+
     init_tty();
     kclear();
 

@@ -8,7 +8,7 @@
 static process_t processes[16];
 static uint32_t process_count = 0;
 static uint32_t current_process = -1;
-static volatile bool process_lock = false;
+static spinlock_t process_lock;
 static volatile uint32_t ticks = 0;
 
 uint32_t get_pid()
@@ -24,6 +24,7 @@ uint32_t get_ttyid()
 void init_process()
 {
     register_irq_handler(IRQ_CLOCK, &process_irq_handler);
+    spinlock_init(&process_lock);
 }
 
 process_t *process_current()
@@ -107,11 +108,10 @@ void process_schedule()
 
 void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
-    if (process_lock)
+    if (!spinlock_try_lock(&process_lock))
     {
         return;
     }
-    process_lock = true;
 
     // save current registers
     if (current_process != (uint32_t)(-1))
@@ -125,14 +125,6 @@ void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
         goto out;
     }
 
-    tty_set_current(default_tty);
-    kprint("[");
-    kprint_hex(++ticks);
-    kprint("] ");
-    kprint_hex(current_process);
-    kprint("\n");
-    tty_set_current(NULL);
-
     // current_process changed
     process_schedule();
 
@@ -142,7 +134,7 @@ void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
     // TODO: paging
 
 out:
-    process_lock = false;
+    spinlock_release(&process_lock);
 }
 
 uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_t entry_point,
@@ -153,7 +145,7 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
         kprint_ok_fail("[KDEBUG] create process failed: process limit exceeded", false);
         return -1;
     }
-    process_lock = true;
+    spinlock_wait_and_lock(&process_lock);
     process_t *proc = &processes[process_count];
     ++process_count;
     strcpy(proc->name, name);
@@ -175,7 +167,7 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
         frame->ds = frame->es = frame->fs = frame->gs = stack_seg;
         proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
     }
-    process_lock = false;
+    spinlock_release(&process_lock);
     return process_count - 1;
 }
 
@@ -186,7 +178,7 @@ uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_poin
         kprint_ok_fail("[KDEBUG] create process failed: process limit exceeded", false);
         return -1;
     }
-    process_lock = true;
+    spinlock_wait_and_lock(&process_lock);
     process_t *proc = &processes[process_count];
     ++process_count;
     strcpy(proc->name, name);
@@ -205,6 +197,6 @@ uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_poin
     frame->eip = proc->registers.eip;
     frame->ds = frame->es = frame->fs = frame->gs = SELECTOR_KERNEL_DATA;
     proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
-    process_lock = false;
+    spinlock_release(&process_lock);
     return process_count - 1;
 }

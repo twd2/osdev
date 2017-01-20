@@ -15,7 +15,22 @@ extern const uint16_t SELECTOR_USER_DATA;
 extern const uint16_t SELECTOR_TSS;
 extern const uint32_t TSS_LENGTH;
 
+// loader.asm
 void enter_ring3();
 uint32_t get_eflags();
+
+bool test_and_set(bool *x);
+bool test_and_reset(bool *x);
+ureg_t compare_and_swap(ureg_t *x, ureg_t compare_value, ureg_t swap_value);
+
+typedef struct spinlock
+{
+    volatile bool lock;
+} spinlock_t;
+
+void spinlock_init(spinlock_t *l);
+bool spinlock_try_lock(spinlock_t *l);
+void spinlock_wait_and_lock(spinlock_t *l);
+void spinlock_release(spinlock_t *l);
 
 #endif // _WDOS_KERNEL_ASM_H_

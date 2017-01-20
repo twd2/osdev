@@ -1,7 +1,6 @@
 %include "descriptor.inc"
 
 global _start
-global tss_ptr
 global gdt32_tss
 global idt_ptr
 global enter_ring3
@@ -13,7 +12,6 @@ global SELECTOR_KERNEL_DATA
 global SELECTOR_USER_CODE
 global SELECTOR_USER_DATA
 global SELECTOR_TSS
-global TSS_LENGTH
 
 extern kmain
 extern prepare_tss_gdt_entry
@@ -74,13 +72,6 @@ _start_kernel:
   ; idt
   call prepare_idt
   lidt [idt_reg]
-
-  ; load tss
-  mov [tss_ss0], ss
-  mov [tss_esp0], dword isr_stack_base + KERNEL_STACK_SIZE
-  call prepare_tss_gdt_entry
-  mov ax, selector_tss
-  ltr ax
 
   push esi
   push edi
@@ -170,18 +161,6 @@ selector_user_code equ ((gdt32_user_code - gdt32_ptr) | SELECTOR_GDT | SELECTOR_
 selector_user_data equ ((gdt32_user_data - gdt32_ptr) | SELECTOR_GDT | SELECTOR_RPL3)
 selector_tss equ ((gdt32_tss - gdt32_ptr) | SELECTOR_GDT | SELECTOR_RPL3)
 
-tss_ptr:
-  dd 0
-tss_esp0:
-  dd 0
-tss_ss0:
-  dd 0
-tss_esp1:
-  times 22 dd 0 ; esp1 ~ ldtr
-  dw 0
-  dw $ - tss_ptr + 2 ; iomap_base
-tss_length equ $ - tss_ptr
-
 idt_ptr:
 %rep 256
   gate 0, 0, 0 ; will be filled later, see pm.c
@@ -201,5 +180,4 @@ SELECTOR_KERNEL_DATA dw selector_kernel_data
 SELECTOR_USER_CODE dw selector_user_code
 SELECTOR_USER_DATA dw selector_user_data
 SELECTOR_TSS dw selector_tss
-TSS_LENGTH dd tss_length
 

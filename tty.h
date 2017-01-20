@@ -3,6 +3,7 @@
 
 #include <runtime/types.h>
 #include <driver/vga.h>
+#include <asm.h>
 
 #define TTY_COLOR_BLACK        0x0
 #define TTY_COLOR_BLUE         0x1
@@ -31,10 +32,16 @@
 #define TTY_CMD_SET_COLOR 0x01
 #define TTY_SET_COLOR "\001"
 #define TTY_DEFAULT_COLOR "\007"
+#define TTY_OK_COLOR "\002"
+#define TTY_FAIL_COLOR "\004"
+
+#define TTY_SET_DEFAULT_COLOR "\001\007"
+#define TTY_SET_OK_COLOR "\001\002"
+#define TTY_SET_FAIL_COLOR "\001\004"
 
 typedef struct tty
 {
-    volatile bool lock;
+    spinlock_t lock;
     uint8_t x, y, color;
     uint16_t *mem;
 } tty_t;

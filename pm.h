@@ -5,6 +5,7 @@
 
 #define DESCRIPTOR_ATTR_4K (1 << 15)
 #define DESCRIPTOR_ATTR_DB (1 << 14)
+#define DESCRIPTOR_ATTR_L (1 << 13)
 #define DESCRIPTOR_ATTR_PRESENT (1 << 7)
 #define DESCRIPTOR_ATTR_DPL0 (0 << 5)
 #define DESCRIPTOR_ATTR_DPL3 (3 << 5)
@@ -29,7 +30,7 @@
                                 DESCRIPTOR_ATTR_SEG | DESCRIPTOR_ATTR_RW | \
                                 DESCRIPTOR_ATTR_4K)
 #define DESCRIPTOR_ATTR_TSS (DESCRIPTOR_ATTR_PRESENT | 0x9)
-#define DESCRIPTOR_ATTR_INTG (DESCRIPTOR_ATTR_PRESENT | 0xE)
+#define GATE_ATTR_INTERRUPT (DESCRIPTOR_ATTR_PRESENT | 0xE)
 
 typedef struct descriptor_entry
 {
@@ -51,13 +52,17 @@ typedef struct gate_entry
 
 typedef struct tss_entry
 {
-    uint32_t prev_tss; // unused
+    uint16_t prev_tss; // unused
+    uint16_t reserved1;
     uint32_t esp0; // The stack pointer to load when we change to kernel mode.
-    uint32_t ss0; // The stack segment to load when we change to kernel mode.
+    uint16_t ss0; // The stack segment to load when we change to kernel mode.
+    uint16_t reserved2;
     uint32_t esp1; // everything below here is unused now...
-    uint32_t ss1;
+    uint16_t ss1;
+    uint16_t reserved3;
     uint32_t esp2;
-    uint32_t ss2;
+    uint16_t ss2;
+    uint16_t reserved4;
     uint32_t cr3;
     uint32_t eip;
     uint32_t eflags;
@@ -69,19 +74,27 @@ typedef struct tss_entry
     uint32_t ebp;
     uint32_t esi;
     uint32_t edi;
-    uint32_t es;         
-    uint32_t cs;        
-    uint32_t ss;        
-    uint32_t ds;        
-    uint32_t fs;       
-    uint32_t gs;         
-    uint32_t ldt;      
+    uint16_t es;
+    uint16_t reserved5;
+    uint16_t cs;
+    uint16_t reserved6;
+    uint16_t ss;
+    uint16_t reserved7;
+    uint16_t ds;
+    uint16_t reserved8;
+    uint16_t fs;
+    uint16_t reserved9;
+    uint16_t gs;
+    uint16_t reserved10;
+    uint16_t ldtr;
+    uint16_t reserved11;
     uint16_t trap;
     uint16_t iomap_base;
 } __attribute__((packed)) tss_entry_t;
 
 void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr);
 void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr);
+void init_pm();
 void prepare_tss_gdt_entry();
 void reset_tss_busy(descriptor_entry_t *ptr);
 void flush_tss();
