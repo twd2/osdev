@@ -17,7 +17,9 @@ void init_keyboard()
 
 inline uint8_t keyboard_read()
 {
-    return inb(KEYBOARD_BUFFER);
+    uint8_t b = inb(KEYBOARD_BUFFER);
+    io_delay();
+    return b;
 }
 
 void keyboard_irq_handler(uint8_t irq, interrupt_frame_t *frame)

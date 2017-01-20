@@ -2,7 +2,7 @@
 #include <pm.h>
 #include <interrupt.h>
 
-void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr)
+inline void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr)
 {
     ptr->limit1 = limit & 0xFFFF;
     ptr->base1 = base & 0xFFFF;
@@ -11,7 +11,7 @@ void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uin
     ptr->base3 = (base >> 24) & 0xFF;
 }
 
-void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr)
+inline void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr)
 {
     ptr->offset1 = offset & 0xFFFF;
     ptr->selector = selector;
@@ -26,17 +26,23 @@ void prepare_tss_gdt_entry()
                     DESCRIPTOR_ATTR_TSS | DESCRIPTOR_ATTR_DPL3);
 }
 
-void flush_tss()
+inline void reset_tss_busy(descriptor_entry_t *ptr)
 {
-    asm volatile ("ltr %%ax\n"
-                  :
-                  : "a"(SELECTOR_TSS));
+    ptr->attr1_limit2_attr2 &= ~DESCRIPTOR_ATTR_BUSY;
 }
 
-void set_tss_stack(uint32_t esp0)
+inline void flush_tss()
+{
+    reset_tss_busy(&gdt32_tss);
+    asm volatile ("ltr %0"
+                  :
+                  : "r"((uint16_t)SELECTOR_TSS));
+}
+
+void set_tss_stack(ureg_t stack)
 {
     tss_ptr.ss0 = SELECTOR_KERNEL_DATA;
-    tss_ptr.esp0 = esp0;
+    tss_ptr.esp0 = stack;
     flush_tss();
 }
 

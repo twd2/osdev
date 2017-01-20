@@ -14,6 +14,8 @@
 #define DESCRIPTOR_ATTR_RW (1 << 1)
 #define DESCRIPTOR_ATTR_AC (1 << 0)
 
+#define DESCRIPTOR_ATTR_BUSY (1 << 1)
+
 #define SELECTOR_GDT (0 << 2)
 #define SELECTOR_LDT (1 << 2)
 #define SELECTOR_RPL0 (0 << 0)
@@ -49,10 +51,10 @@ typedef struct gate_entry
 
 typedef struct tss_entry
 {
-    uint32_t prev_tss;   // The previous TSS - if we used hardware task switching this would form a linked list.
-    uint32_t esp0;       // The stack pointer to load when we change to kernel mode.
-    uint32_t ss0;        // The stack segment to load when we change to kernel mode.
-    uint32_t esp1;       // everything below here is unusued now.. 
+    uint32_t prev_tss; // unused
+    uint32_t esp0; // The stack pointer to load when we change to kernel mode.
+    uint32_t ss0; // The stack segment to load when we change to kernel mode.
+    uint32_t esp1; // everything below here is unused now...
     uint32_t ss1;
     uint32_t esp2;
     uint32_t ss2;
@@ -81,6 +83,9 @@ typedef struct tss_entry
 void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr);
 void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr);
 void prepare_tss_gdt_entry();
+void reset_tss_busy(descriptor_entry_t *ptr);
+void flush_tss();
+void set_tss_stack(ureg_t stack);
 void prepare_idt();
 
 #endif // _WDOS_KERNEL_PM_H_

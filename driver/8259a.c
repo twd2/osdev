@@ -24,7 +24,7 @@ void init_8259a()
     outb(PIC8259A_SLAVE_DATA, 1);
     io_delay();
 
-    outb(PIC8259A_MASTER_DATA, 0); // OCW1: enable all interrupts
+    outb(PIC8259A_MASTER_DATA, 0); // OCW1: enable all interrupts(no mask)
     io_delay();
     outb(PIC8259A_SLAVE_DATA, 0);
     io_delay();

@@ -74,7 +74,13 @@ stdlib/memory.o: stdlib/memory.c
 stdlib/string.o: stdlib/string.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o
+mm/page_list.o: mm/page_list.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+mm/buddy.o: mm/buddy.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+kernel.elf: linker.ld loader.o kmain.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o mm/page_list.o mm/buddy.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 grub.iso: kernel.elf iso/boot/grub/grub.cfg

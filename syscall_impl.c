@@ -36,10 +36,12 @@ static void do_yield(interrupt_frame_t *frame)
     process_irq_handler(IRQ_CLOCK, frame);
 }
 
-static void do_delay(int x)
+static void do_delay(interrupt_frame_t *frame, int x)
 {
-    // enable_interrupt(); TODO: kernel stack
-    return;
+    enable_interrupt(); // allow process switch
+
+    while (!x);
+
     int i = 10000;
     while (--i)
     {

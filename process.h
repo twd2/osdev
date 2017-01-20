@@ -13,6 +13,8 @@ typedef struct process
     char name[16];
     tty_t *tty;
     interrupt_frame_t registers;
+    ureg_t pdbr; // cr3
+    ureg_t kernel_stack;
 } process_t;
 
 typedef void (*entry_point_t)();
@@ -24,7 +26,7 @@ process_t *process_current();
 void process_schedule();
 void process_irq_handler(uint8_t irq, interrupt_frame_t *frame);
 uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_t entry_point,
-                        uint16_t stack_seg, void *stack);
+                        uint16_t stack_seg, void *stack, void *kernel_stack);
 uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_point, void *stack);
 
 #endif // _WDOS_KERNEL_PROCESS_H_

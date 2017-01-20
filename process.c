@@ -9,6 +9,7 @@ static process_t processes[16];
 static uint32_t process_count = 0;
 static uint32_t current_process = -1;
 static volatile bool process_lock = false;
+static volatile uint32_t ticks = 0;
 
 uint32_t get_pid()
 {
@@ -111,26 +112,41 @@ void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
         return;
     }
     process_lock = true;
+
     // save current registers
     if (current_process != (uint32_t)(-1))
     {
         store_registers(&processes[current_process].registers, frame);
     }
+
     if (!process_count)
     {
         kprint_ok_fail("[KDEBUG] schedule failed: no process", false);
-        process_lock = false;
-        return;
+        goto out;
     }
+
+    tty_set_current(default_tty);
+    kprint("[");
+    kprint_hex(++ticks);
+    kprint("] ");
+    kprint_hex(current_process);
+    kprint("\n");
+    tty_set_current(NULL);
+
     // current_process changed
     process_schedule();
+
     // change registers to switch process
     load_registers(frame, &processes[current_process].registers);
+    set_tss_stack(processes[current_process].kernel_stack);
+    // TODO: paging
+
+out:
     process_lock = false;
 }
 
 uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_t entry_point,
-                        uint16_t stack_seg, void *stack)
+                        uint16_t stack_seg, void *stack, void *kernel_stack)
 {
     if (process_count >= 16)
     {
@@ -147,6 +163,7 @@ uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_
     proc->registers.ss = stack_seg;
     proc->registers.esp = (uintptr_t)stack;
     proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs = stack_seg;
+    proc->kernel_stack = (uintptr_t)kernel_stack;
     // process.cpl == 0
     if ((entry_point_seg & SELECTOR_RPL_MASK) == SELECTOR_RPL0)
     {
@@ -180,6 +197,7 @@ uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_poin
     proc->registers.esp = (uintptr_t)stack;
     proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs =
         SELECTOR_KERNEL_DATA;
+    proc->kernel_stack = NULL; // already kernel, so kernel_stack = NULL for TSS
     // allocate interrupt_frame
     interrupt_frame_t *frame = (interrupt_frame_t *)(stack - sizeof(interrupt_frame_t));
     frame->isr_esp = proc->registers.isr_esp;
