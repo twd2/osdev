@@ -1,11 +1,11 @@
 #include "page_list.h"
 
-void page_list_init(page_list_t *list, page_node_t *data)
+void page_list_init(page_list_t *list, page_node_t *nodes)
 {
     page_node_t *head, *tail;
 
-    head = &data[0];
-    tail = &data[1];
+    head = &nodes[0];
+    tail = &nodes[1];
 
     head->prev = NULL;
     head->next = tail;
@@ -15,12 +15,12 @@ void page_list_init(page_list_t *list, page_node_t *data)
     list->size = 2; // head + tail
     list->head = head;
     list->tail = tail;
-    list->data = data;
+    list->nodes = nodes;
 }
 
 page_node_t *page_list_alloc_node(page_list_t *list)
 {
-    page_node_t *n = &list->data[list->size];
+    page_node_t *n = &list->nodes[list->size];
     ++list->size;
     return n;
 }
@@ -37,6 +37,7 @@ inline void page_list_take_node(page_list_t *list, page_node_t *node)
 {
     node->prev->next = node->next;
     node->next->prev = node->prev;
+    node->prev = node->next = NULL;
 }
 
 inline page_node_t *page_list_last_node(page_list_t *list)
@@ -50,10 +51,11 @@ inline page_node_t *page_list_last_node(page_list_t *list)
 
 inline page_node_t *page_list_last_phy_node(page_list_t *list)
 {
-    return &list->data[list->size - 1];
+    return &list->nodes[list->size - 1];
 }
 
-inline void page_list_swap_nodes(page_list_t *list, page_node_t *node1, page_node_t *node2)
+inline void page_list_swap_nodes(page_list_t *list,
+                                 page_node_t *node1, page_node_t *node2)
 {
     if (node1 == node2)
     {
@@ -96,7 +98,7 @@ inline void page_list_swap_nodes(page_list_t *list, page_node_t *node1, page_nod
         node2->prev->next = node1;
         node2->next->prev = node1;
 
-        page_list_t *tmp;
+        page_node_t *tmp;
 
         tmp = node1->prev;
         node1->prev = node2->prev;
@@ -126,6 +128,7 @@ void *page_list_remove_node(page_list_t *list, page_node_t *node)
     page_list_swap_nodes(list, node, page_list_last_phy_node(list)); // make node last phy.
     node = page_list_last_phy_node(list);
     page_list_remove_last_phy_node(list);
+    return page;
 }
 
 static inline bool page_list_comparator_gt(page_list_t *list, page_node_t *a, page_node_t *b)
