@@ -17,11 +17,11 @@ stage1: stage1.asm
 stage2.bin: stage2.elf
 	objcopy -j .text -O binary stage2.elf stage2.bin
 
-stage2.elf: linker.ld stage2.o blmain.o bios.o iso9660.o elf.o util.o ../../stdlib/memory.o ../../stdlib/string.o
+stage2.elf: linker.ld stage2.o blmain.o bios.o iso9660.o vesa.o elf.o util.o ../../stdlib/memory.o ../../stdlib/string.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-stage2.o: stage2.asm
-	$(AS) $(ASFLAGS) $^ -o $@
+stage2.o: stage2.asm bios_function.inc
+	$(AS) $(ASFLAGS) $< -o $@
 
 blmain.o: blmain.c
 	$(CC) $(CFLAGS) -c $^ -o $@
@@ -30,6 +30,9 @@ bios.o: bios.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 iso9660.o: iso9660.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+vesa.o: vesa.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 elf.o: elf.c

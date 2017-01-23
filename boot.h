@@ -2,8 +2,10 @@
 #define _WDOS_KERNEL_BOOT_H_
 
 #include <runtime/types.h>
+#include <multiboot.h>
 
-#define MULTIBOOT_NEEDED_FLAGS 0b1000111
+#define MULTIBOOT_NEEDED_FLAGS (MULTIBOOT_INFO_MEMORY | MULTIBOOT_INFO_BOOTDEV | \
+                                MULTIBOOT_INFO_CMDLINE | MULTIBOOT_INFO_MEM_MAP)
 #define MEMORY_TYPE_USABLE 1
 #define MEMORY_TYPE_RESERVED 2
 

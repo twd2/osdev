@@ -8,6 +8,7 @@
 #include "util.h"
 #include "bios.h"
 #include "iso9660.h"
+#include "vesa.h"
 #include "elf.h"
 
 extern uint8_t _bss_begin, _bss_end;
@@ -16,11 +17,17 @@ void *bss_begin = &_bss_begin, *bss_end = &_bss_end;
 const char *const cmdline_file = "/boot/cmdline.txt";
 const char *const kernel_file = "/boot/kernel.elf";
 
+void *const sector_buffer = (void *)0x20000; // length: 64 KiB
+
 char kernel_cmdline[256];
+
 uint32_t memory_map_count;
 bios_memory_map_t memory_map[32];
-void *const sector_buffer = (void *)0x20000; // length: 64 KiB
+
 multiboot_info_t mb_info;
+vesa_control_info_t vesa_control_info;
+vesa_mode_info_t vesa_mode_info;
+
 
 void load_memory_map()
 {
@@ -101,7 +108,7 @@ void load_memory_map()
 
 void fill_multiboot_info()
 {
-    mb_info.flags = MULTIBOOT_FLAGS;
+    mb_info.flags = MULTIBOOT_INFO_FLAGS;
     // mem_lower and mem_upper are filled by load_memory_map()
     mb_info.boot_device = MKBOOT_DEVICE(boot_device, UNUSED_PARTITION,
                                         UNUSED_PARTITION, UNUSED_PARTITION);
@@ -109,18 +116,19 @@ void fill_multiboot_info()
 
     // copy memory_map
     assert(memory_map_count);
-    mb_info.mmap_length = memory_map_count * sizeof(memory_map_t);
-    memory_map_t *mb_mmap = (memory_map_t *)palloc(mb_info.mmap_length);
+    mb_info.mmap_length = memory_map_count * sizeof(multiboot_memory_map_t);
+    multiboot_memory_map_t *mb_mmap =
+        (multiboot_memory_map_t *)palloc(mb_info.mmap_length);
     for (uint32_t i = 0; i < memory_map_count; ++i)
     {
         mb_mmap[i].size = sizeof(mb_mmap[i]) - sizeof(mb_mmap[i].size);
-        mb_mmap[i].base_addr_low = memory_map[i].base_low;
-        mb_mmap[i].base_addr_high = memory_map[i].base_high;
-        mb_mmap[i].length_low = memory_map[i].length_low;
-        mb_mmap[i].length_high = memory_map[i].length_high;
+        mb_mmap[i].addr = memory_map[i].base;
+        mb_mmap[i].len = memory_map[i].length;
         mb_mmap[i].type = memory_map[i].type;
     }
     mb_info.mmap_addr = (uint32_t)mb_mmap;
+
+    // vbe_control_info, vbe_mode_info and vbe_mode will be filled by init_vesa()
 }
 
 void *read_all_extent(directory_record_t *file, void *buffer)
@@ -306,7 +314,7 @@ int load_segment(uint32_t lba, uint32_t offset, void *dest, uint32_t length)
     return OK;
 }
 
-kernel_entry_t load_kernel()
+kernel_entry_t load_kernel(multiboot_header_t *out_mb_header)
 {
     const uint16_t sector_size = get_boot_device_sector_size();
     print("Loading kernel ");
@@ -409,6 +417,8 @@ kernel_entry_t load_kernel()
         die("\r\nChecksum is incorrect.\r\n");
     }
 
+    memcpy(out_mb_header, mb_header, sizeof(multiboot_header_t));
+
     print("flags=");
     print_bin(mb_header->flags);
     print("\r\n");
@@ -417,8 +427,6 @@ kernel_entry_t load_kernel()
     {
         die("\r\nUnsupported flag(s) found.\r\n");
     }
-
-    debug_pause();
 
     for (int i = 0; i < elf_header.e_phnum; ++i)
     {
@@ -446,6 +454,160 @@ kernel_entry_t load_kernel()
     }
 
     return kernel_entry;
+}
+
+void print_vesa_mode_info(vesa_mode_info_t *info)
+{
+    print_int(info->x_res);
+    print("x");
+    print_int(info->y_res);
+    print(", ");
+    print_int(info->bpp);
+    print("bpp, linear fb: ");
+    print((info->attr & VESA_MODE_ATTR_LINEAR_FRAMEBUFFER) ? "YES" : "NO");
+    print(", graphics: ");
+    print((info->attr & VESA_MODE_ATTR_GRAPHICS) ? "YES" : "NO");
+    print(", mem_model=");
+    print_int(info->memory_model);
+}
+
+bool init_vesa(multiboot_header_t *mb_header)
+{
+    print("kernel requires video mode: ");
+    print_int(mb_header->width);
+    print("x");
+    print_int(mb_header->height);
+    print(", ");
+    print_int(mb_header->depth);
+    print("bpp\r\n");
+
+    memset(&vesa_control_info, 0, sizeof(vesa_control_info));
+#ifdef USE_VBE2
+    memcpy(vesa_control_info.magic, "VBE2", 4);
+#endif
+
+    if (get_vesa_control_info(&vesa_control_info) != OK)
+    {
+        print("Warning: Get VESA control info failed.\r\n");
+        return false;
+    }
+
+    static char buffer[256] = {0};
+
+    memcpy(buffer, vesa_control_info.magic, 4);
+    if (memcmp(buffer, VESA_MAGIC, VESA_MAGIC_LENGTH))
+    {
+        print("Warning: Get VESA control info failed.\r\n");
+        return false;
+    }
+
+    print("+--------------+\r\n"
+          "|  VESA  INFO  |\r\n"
+          "+--------------+\r\n");
+    print("magic=");
+    print(buffer);
+    print(", version=");
+    print_int(vesa_control_info.version >> 8);
+    print(".");
+    print_int(vesa_control_info.version & 0xff);
+    print("\r\n");
+    strcpy(buffer, logic_to_linear(vesa_control_info.oem_string_seg,
+                                   vesa_control_info.oem_string_offset));
+    print("OEM string=\r\n  ");
+    print(buffer);
+    print("\r\ntotal_memory=");
+    print_int((uint32_t)vesa_control_info.total_memory * 64);
+    print(" KiB, supported modes:\r\n");
+
+    debug_pause();
+
+    uint16_t *modes =
+        (uint16_t *)(logic_to_linear(vesa_control_info.video_mode_seg,
+                                     vesa_control_info.video_mode_offset));
+
+    uint16_t vesa_mode_selected = VESA_MODE_INVALID;
+    uint32_t vesa_mode_diff = (uint32_t)-1;
+
+    for (size_t i = 0; modes[i] != VESA_MODE_TERMINATOR; ++i)
+    {
+#ifndef NDEBUG
+        print("  ");
+        print_byte(modes[i] >> 8);
+        print_byte(modes[i] & 0xff);
+        print(": ");
+#endif
+        memset(&vesa_mode_info, 0, sizeof(vesa_mode_info));
+        if (get_vesa_mode_info(modes[i], &vesa_mode_info) == OK)
+        {
+#ifndef NDEBUG
+            print_vesa_mode_info(&vesa_mode_info);
+#endif
+            if ((vesa_mode_info.attr & VESA_MODE_ATTR_LINEAR_FRAMEBUFFER) &&
+                (vesa_mode_info.attr & VESA_MODE_ATTR_GRAPHICS) &&
+                vesa_mode_info.memory_model == VESA_MODE_MEMORY_MODEL_DIRECTCOLOR)
+            {
+                uint32_t diff =
+                    mode_diff(mb_header->width, mb_header->height, mb_header->depth,
+                              vesa_mode_info.x_res, vesa_mode_info.y_res, vesa_mode_info.bpp);
+                if (!diff)
+                {
+                    vesa_mode_selected = modes[i];
+                    vesa_mode_diff = diff;
+                    // break;
+                }
+                else if (diff < vesa_mode_diff)
+                {
+                    vesa_mode_selected = modes[i];
+                    vesa_mode_diff = diff;
+                }
+            }
+        }
+        else
+        {
+            print("Warning: Set VESA mode info failed.");
+        }
+        print("\r\n");
+        if ((i & 0xf) == 0xf)
+        {
+            debug_pause();
+        }
+    }
+    print("END\r\n");
+    debug_pause();
+
+    if (vesa_mode_selected == 0xffff || vesa_mode_diff == (uint32_t)-1)
+    {
+        print("Warning: No satisfied mode.\r\n");
+        return false;
+    }
+    else
+    {
+        memset(&vesa_mode_info, 0, sizeof(vesa_mode_info));
+        assert(get_vesa_mode_info(vesa_mode_selected, &vesa_mode_info) == OK);
+        print("Selected mode:\r\n  ");
+        print_byte(vesa_mode_selected >> 8);
+        print_byte(vesa_mode_selected & 0xff);
+        print(": ");
+        print_vesa_mode_info(&vesa_mode_info);
+        print("\r\n");
+        print("base=");
+        print_hex(vesa_mode_info.base);
+        print("\r\n");
+        print("Going to graphics mode... ");
+        debug_pause();
+    }
+
+    if (set_vesa_mode(vesa_mode_selected | VESA_MODE_LINEAR_FRAMEBUFFER) != OK)
+    {
+        print("Warning: Set VESA mode failed.\r\n");
+        return false;
+    }
+
+    mb_info.flags |= MULTIBOOT_INFO_VIDEO_INFO;
+    mb_info.vbe_control_info = (uint32_t)&vesa_control_info;
+    mb_info.vbe_mode_info = (uint32_t)&vesa_mode_info;
+    mb_info.vbe_mode = vesa_mode_selected | VESA_MODE_LINEAR_FRAMEBUFFER;
+    return true;
 }
 
 void jmp_kernel(kernel_entry_t kernel_entry, uint32_t mb_magic, multiboot_info_t *mb_info)
@@ -480,16 +642,35 @@ void blmain()
 
     debug_pause();
 
-    kernel_entry_t kernel_entry = load_kernel();
+    multiboot_header_t mb_header;
+    kernel_entry_t kernel_entry = load_kernel(&mb_header);
+    assert(kernel_entry);
 
     debug_pause();
 
-    print("Calling kernel(at ");
-    print_hex(kernel_entry);
-    print(") with cmdline=\"");
-    print(kernel_cmdline);
-    print("\"...\r\n");
-    assert(kernel_entry);
+    if ((mb_header.flags & MULTIBOOT_VIDEO_MODE) &&
+        mb_header.mode_type == MULTIBOOT_MODE_TYPE_GRAPHICS)
+    {
+        print("Calling kernel(at ");
+        print_hex(kernel_entry);
+        print(") with cmdline=\"");
+        print(kernel_cmdline);
+        print("\"...\r\n");
+        if (!init_vesa(&mb_header))
+        {
+            debug_pause();
+        }
+    }
+    else
+    {
+        print("Calling kernel(at ");
+        print_hex(kernel_entry);
+        print(") with cmdline=\"");
+        print(kernel_cmdline);
+        print("\"...\r\n");
+        debug_pause();
+    }
+
     jmp_kernel(kernel_entry, MULTIBOOT_BOOTLOADER_MAGIC, &mb_info);
 
     die("Unknown error.");

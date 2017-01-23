@@ -59,6 +59,15 @@ bios_function:
   cmp bx, 5
   je function_drive_params
 
+  cmp bx, 6
+  je function_vesa_control_info
+
+  cmp bx, 7
+  je function_vesa_mode_info
+
+  cmp bx, 8
+  je function_set_vesa_mode
+
   function_default:
     xor bx, bx
     not bx ; error 0xffff: unknown function
@@ -102,7 +111,7 @@ bios_function:
     mov dword [memory_map_count - $$], ebx ; memory_map_count = 0
     memory_map_loop:
       mov eax, 0xe820 ; read memory info
-      mov ecx, [si] ; sizeof(memory_map_t)
+      mov ecx, [si] ; in sizeof(memory_map_t)
       mov edx, 0x534d4150 ; "SMAP"
       ; destination = es:di
       int 0x15 ; bios function
@@ -116,7 +125,7 @@ bios_function:
     jmp memory_map_loop
     memory_map_return:
     mov eax, dword [memory_map_count - $$]
-    mov [si], eax
+    mov [si], eax ; out count
   jmp function_end
 
   function_drive_params:
@@ -128,10 +137,44 @@ bios_function:
     jc bios_error
   jmp function_end
 
+  function_vesa_control_info:
+    ; buffer = es:di
+    mov ax, 0x4f00 ; get SuperVGA info
+    int 0x10 ; bios function
+    jc bios_error
+    cmp ax, 0x004f
+    jne bios_error
+    xor bx, bx
+  jmp function_end
+
+  function_vesa_mode_info:
+    mov cx, di
+    mov di, si
+    mov ax, 0x4f01 ; get SuperVGA mode info
+    int 0x10 ; bios function
+    jc bios_error
+    cmp ax, 0x004f
+    jne bios_error
+    xor bx, bx
+  jmp function_end
+
+  function_set_vesa_mode:
+    mov bx, di
+    mov di, si
+    mov ax, 0x4f02 ; set SuperVGA video mode
+    int 0x10 ; bios function
+    jc bios_error
+    cmp ax, 0x004f
+    jne bios_error
+    xor bx, bx
+  jmp function_end
+
   bios_error:
   mov bx, ax ; bx = bios error = ax
 
   function_end:
+
+  lgdt [ds:gdt32_reg - $$]
 
   ; A20
   in al, 0x92

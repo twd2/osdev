@@ -10,9 +10,17 @@
 #define FUNCTION_READ_SECTOR 3
 #define FUNCTION_MEMORY_MAP 4
 #define FUNCTION_DRIVE_PARAMS 5
+#define FUNCTION_VESA_CONTROL_INFO 6
+#define FUNCTION_VESA_MODE_INFO 7
+#define FUNCTION_SET_VESA_MODE 8
 
 // bios_function.inc
 int bios_function(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+
+inline void *logic_to_linear(uint16_t seg, uint16_t offset)
+{
+    return (void *)(((uint32_t)seg << 4) + (uint32_t)offset);
+}
 
 inline void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset)
 {
@@ -213,4 +221,27 @@ uint16_t get_sector_size(uint8_t dev)
         return 0;
     }
     return dp.sector_size;
+}
+
+int get_vesa_control_info(vesa_control_info_t *buffer)
+{
+    if (!(0x10000 <= (uintptr_t)buffer && (uintptr_t)buffer <= 0x1ffff))
+    {
+        die("Argument for buffer is out of range.\r\n");
+    }
+    return bios_function(FUNCTION_VESA_CONTROL_INFO, (uint32_t)buffer, 0);
+}
+
+int get_vesa_mode_info(uint16_t mode, vesa_mode_info_t *buffer)
+{
+    if (!(0x10000 <= (uintptr_t)buffer && (uintptr_t)buffer <= 0x1ffff))
+    {
+        die("Argument for buffer is out of range.\r\n");
+    }
+    return bios_function(FUNCTION_VESA_MODE_INFO, mode, (uint32_t)buffer);
+}
+
+int set_vesa_mode(uint16_t mode)
+{
+    return bios_function(FUNCTION_SET_VESA_MODE, (uint32_t)mode, 0);
 }

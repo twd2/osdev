@@ -130,39 +130,50 @@ void print_mem_info()
     kprint_hex(free_mem_start);
     kprint(", free_mem_end=");
     kprint_hex(free_mem_end);
-    kprint(", memory_map_count=");
-    kprint_int(memory_map_count);
+    kprint(", bios_mem_map_count=");
+    kprint_int(bios_mem_map_count);
     kprint("\n");
-    memory_map_long_t *mmapl = (memory_map_long_t *)memory_map;
-    for (uint32_t i = 0; i < memory_map_count; ++i)
+    memory_map_long_t *mmap = bios_mem_map;
+    for (uint32_t i = 0; i < bios_mem_map_count; ++i)
     {
         kprint("[KDEBUG] ");
         kprint_int(i);
         kprint(": base=");
-        kprint_hex_long(mmapl[i].base);
+        kprint_hex_long(mmap[i].base);
         kprint(", limit=");
-        kprint_hex_long(mmapl[i].base - 1 + mmapl[i].length);
+        kprint_hex_long(mmap[i].base - 1 + mmap[i].length);
         kprint("\n");
     }
 }
 
 int kmain(int mb_magic, multiboot_info_t *mb_info)
 {
+    mb_info = __VA(mb_info);
+
     if (mb_magic != MULTIBOOT_BOOTLOADER_MAGIC)
     {
         // not multiboot
-        init_tty();
+        /*init_tty();
         kclear();
-        kprint("WDOS [version 0.0]\nMust boot from a multiboot bootloader.\n");
+        kprint("WDOS [version 0.0]\nMust boot from a multiboot bootloader.\n");*/
         return 0xdeadbeef;
     }
 
-    free_mem_end = (void *)((mb_info->mem_upper << 10) + 0x100000);
-
     init_pm();
 
-    init_tty();
+    init_vesa(mb_info);
+    if (vesa_available)
+    {
+        init_tty(vesa_get_tty_driver());
+    }
+    else
+    {
+        init_vga();
+        init_tty(vga_get_tty_driver());
+    }
+
     kclear();
+    kprint_ok_fail("[KDEBUG] check VESA availability", vesa_available);
 
     kprint_ok_fail("[KDEBUG] system booted successfully.", true);
     print_multiboot_info(mb_magic, mb_info);
@@ -174,7 +185,12 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         return 0xdeadbeef;
     }
 
-    copy_mem_map(mb_info);
+    init_vesa(mb_info);
+    kprint("abcdefghijklmnopqrstuvwxyz\n");
+    kprint("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+
+    //for (;;) asm volatile ("cli\nhlt");
+    init_mm(mb_info);
     print_mem_info();
 
     kprint_ok_fail("[KDEBUG] init PIC 8259a", true);
@@ -192,6 +208,7 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     init_process();
 
     init_idle();
+    init_dwm();
 
     tty_switch(default_tty + 1);
     uint32_t kpid = process_create("kernel", SELECTOR_KERNEL_CODE, &process1,
@@ -214,6 +231,10 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     tty_switch(default_tty);
 
     kprint(TTY_SET_COLOR "\013hello, world\b\b\b\b\btwd2.\n" TTY_SET_COLOR TTY_DEFAULT_COLOR);
+
+    kprint(        " \001\0011\001\0022\001\0033\001\0044\001\0055\001\0066\001\0077"
+           "\001\0108\001\0119\001\012A\001\013B\001\014C\001\015D\001\016E\001\017F\r\n"
+           TTY_SET_COLOR TTY_DEFAULT_COLOR);
 
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);

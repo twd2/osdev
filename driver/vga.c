@@ -1,5 +1,19 @@
 #include "vga.h"
+
 #include <io.h>
+#include <asm.h>
+#include <tty.h>
+
+static tty_driver_t vga_tty_driver =
+{
+    .width = VGA_WIDTH,
+    .height = VGA_HEIGHT,
+    .init = &vga_tty_init,
+    .rerender = NULL,
+    .switch_handler = &vga_tty_switch_handler,
+    .update_cursor_location = &vga_tty_update_cursor_location,
+    .set_char = NULL
+};
 
 void init_vga()
 {
@@ -44,9 +58,26 @@ void vga_set_cursor_location(uint8_t x, uint8_t y)
     outb(CRTC_DATA, location & 0xFF);
     io_delay();
 
-    // restore eflags
-    asm volatile ("push %0\n"
-                  "popf"
-                  :
-                  : "g"(eflags));
+    restore_flags(flags);
+}
+
+void vga_tty_init(tty_t *tty, size_t i)
+{
+    tty->mem = (tty_colored_char_t *)(VGA_GRAPHICS_MEMORY_START_ADDRESS + (i << 12)); // 4K
+}
+
+void vga_tty_switch_handler(tty_t *tty)
+{
+    vga_set_start_address(tty->mem);
+}
+
+void vga_tty_update_cursor_location(tty_t *tty)
+{
+    // TODO
+    // vga_set_cursor_location(tty->x, tty->y);
+}
+
+const tty_driver_t *vga_get_tty_driver()
+{
+    return (const tty_driver_t *)&vga_tty_driver;
 }

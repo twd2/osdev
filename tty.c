@@ -2,21 +2,29 @@
 
 #include <runtime/types.h>
 #include <stdlib/string.h>
-#include <driver/vga.h>
 #include <process.h>
 
 static tty_t ttys[TTY_COUNT];
 tty_t *const default_tty = &ttys[0];
-static tty_t *current_screen;
+static volatile tty_t *current_screen;
 static tty_t *current_tty = NULL;
 
-void init_tty()
+static size_t tty_width, tty_height;
+static tty_driver_t tty_driver;
+
+void init_tty(tty_driver_t *driver)
 {
-    init_vga();
+    memcpy(&tty_driver, driver, sizeof(tty_driver_t));
+    tty_width = tty_driver.width;
+    tty_height = tty_driver.height;
+
     for (int i = 0; i < TTY_COUNT; ++i)
     {
         tty_init(&ttys[i]);
-        ttys[i].mem = (uint16_t *)(VGA_GRAPHICS_MEMORY_START_ADDRESS + (i << 12)); // 4K
+        if (tty_driver.init)
+        {
+            tty_driver.init(&ttys[i], i);
+        }
     }
     tty_switch(default_tty);
 }
@@ -61,10 +69,23 @@ void tty_leave(tty_t *tty)
     spinlock_release(&tty->lock);
 }
 
+tty_t *tty_select(size_t id)
+{
+    return &ttys[id];
+}
+
 void tty_switch(tty_t *tty)
 {
+    if (current_screen == tty)
+    {
+        return;
+    }
+
     current_screen = tty;
-    vga_set_start_address(tty->mem);
+    if (tty_driver.switch_handler)
+    {
+        tty_driver.switch_handler(tty);
+    }
     tty_update_cursor_location();
 }
 
@@ -75,7 +96,10 @@ void tty_set_current(tty_t *tty)
 
 void tty_update_cursor_location()
 {
-    vga_set_cursor_location(current_screen->x, current_screen->y);
+    if (tty_driver.update_cursor_location)
+    {
+        tty_driver.update_cursor_location(current_screen);
+    }
 }
 
 void tty_clear(tty_t *tty)
@@ -83,51 +107,70 @@ void tty_clear(tty_t *tty)
     tty_fill_color(tty, 0);
 }
 
-void tty_fill_color(tty_t *tty, uint8_t color)
+void tty_fill_color(tty_t *tty, tty_color_t color)
 {
     uint32_t *gm_int = (uint32_t *)tty->mem;
-    for (uint32_t i = 0; i < 80 * 25 / 2; ++i)
+    for (uint32_t i = 0; i < tty_width * tty_height / 2; ++i)
     {
         gm_int[i] = 0x00200020 | ((uint32_t)color << 24) | ((uint32_t)color << 8);
     }
     tty->x = tty->y = 0;
-    /* TODO if (tty == current_screen)
+    if (tty == current_screen)
     {
+        if (tty_driver.rerender)
+        {
+            tty_driver.rerender(tty);
+        }
         tty_update_cursor_location();
-    }*/
+    }
 }
 
 void tty_newline(tty_t *tty)
 {
     tty->x = 0;
     ++tty->y;
-    if (tty->y >= TTY_HEIGHT)
+    if (tty->y >= tty_height)
     {
         tty_scroll(tty);
-        tty->y = TTY_HEIGHT - 1;
+        tty->y = tty_height - 1;
     }
 }
 
 void tty_scroll(tty_t *tty)
 {
     uint32_t *gm_int = (uint32_t *)tty->mem;
-    for (int i = 0; i < TTY_WIDTH * (TTY_HEIGHT - 1) / 2; ++i)
+    for (int i = 0; i < tty_width * (tty_height - 1) / 2; ++i)
     {
-        gm_int[i] = gm_int[i + TTY_WIDTH / 2];
+        gm_int[i] = gm_int[i + tty_width / 2];
     }
-    for (int i = TTY_WIDTH * (TTY_HEIGHT - 1) / 2; i < TTY_WIDTH * TTY_HEIGHT / 2; ++i)
+    for (int i = tty_width * (tty_height - 1) / 2; i < tty_width * tty_height / 2; ++i)
     {
         gm_int[i] = 0;
     }
+    if (tty == current_screen)
+    {
+        if (tty_driver.rerender)
+        {
+            tty_driver.rerender(tty);
+        }
+        tty_update_cursor_location();
+    }
 }
 
-inline void tty_set_char(tty_t *tty, uint8_t x, uint8_t y, char ch, uint8_t color)
+inline void tty_set_char(tty_t *tty, size_t x, size_t y, char ch, tty_color_t color)
 {
-    tty->mem[x + y * TTY_WIDTH] = (color << 8) | ch;
+    tty->mem[x + y * tty_width] = (color << 8) | ch;
+    if (tty == current_screen)
+    {
+        if (tty_driver.set_char)
+        {
+            tty_driver.set_char(tty, x, y, ch, color);
+        }
+    }
 }
 
-void tty_set_string(tty_t *tty, uint8_t x_offset, uint8_t y_offset,
-                    uint8_t width, const char *str, uint8_t color)
+void tty_set_string(tty_t *tty, size_t x_offset, size_t y_offset,
+                    size_t width, const char *str, tty_color_t color)
 {
     for (int i = 0; str[i] != '\0'; ++i)
     {
@@ -169,16 +212,16 @@ uint32_t tty_print(tty_t *tty, const char *str)
         {
             tty_set_char(tty, tty->x, tty->y, str[i], tty->color);
             ++tty->x;
-            if (tty->x >= TTY_WIDTH)
+            if (tty->x >= tty_width)
             {
                 tty_newline(tty);
             }
         }
     }
-    /* TODO if (tty == current_screen)
+    if (tty == current_screen)
     {
         tty_update_cursor_location();
-    }*/
+    }
     return i;
 }
 
@@ -197,7 +240,7 @@ void kclear()
     tty_clear(tty_current_process());
 }
 
-void kfill_color(uint8_t color)
+void kfill_color(tty_color_t color)
 {
     tty_fill_color(tty_current_process(), color);
 }
@@ -207,7 +250,7 @@ uint8_t kget_color()
     return tty_current_process()->color;
 }
 
-void kset_color(uint8_t color)
+void kset_color(tty_color_t color)
 {
     tty_current_process()->color = color;
 }
@@ -286,7 +329,7 @@ uint32_t kprint_ok_fail(const char *str, bool ok)
     {
         ok_length = 6; // [FAIL]
     }
-    for (uint8_t i = 0; i < TTY_WIDTH - len - ok_length; ++i)
+    for (uint8_t i = 0; i < tty_width - len - ok_length; ++i)
     {
         kprint(" ");
     }
@@ -300,5 +343,5 @@ uint32_t kprint_ok_fail(const char *str, bool ok)
         kprint("[" TTY_SET_FAIL_COLOR "FAIL" TTY_SET_DEFAULT_COLOR "]");
     }
     kset_color(old_color);
-    return TTY_WIDTH;
+    return tty_width;
 }

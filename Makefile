@@ -59,6 +59,9 @@ process.o: process.c
 idle.o: idle.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
+dwm.o: dwm.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 driver/8259a.o: driver/8259a.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
@@ -69,6 +72,12 @@ driver/keyboard.o: driver/keyboard.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 driver/vga.o: driver/vga.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+driver/vesa.o: driver/vesa.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+driver/vga_font.o: driver/vga_font.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 stdlib/memory.o: stdlib/memory.c
@@ -86,7 +95,10 @@ mm/page_list.o: mm/page_list.c
 mm/buddy.o: mm/buddy.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o
+mm/mm.o: mm/mm.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o dwm.o driver/8259a.o driver/clock.o driver/keyboard.o driver/vga.o driver/vesa.o driver/vga_font.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o mm/mm.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 grub.iso: kernel.elf iso/boot/grub/grub.cfg

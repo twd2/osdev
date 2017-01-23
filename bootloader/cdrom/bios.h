@@ -3,6 +3,8 @@
 
 #include <runtime/types.h>
 
+#include "vesa_types.h"
+
 #define BIOS_DMA_MAX_LENGTH 0x10000
 
 #define OK 0
@@ -75,6 +77,7 @@ typedef struct drive_params
 
 extern uint8_t boot_device; // stage2.asm
 
+void *logic_to_linear(uint16_t seg, uint16_t offset);
 void linear_to_logic(void *addr, uint16_t *out_seg, uint16_t *out_offset);
 int print(const char *str); // str must be in [0x10000, 0x1ffff]
 int print_hex(uint32_t x);
@@ -94,5 +97,8 @@ int read_memory_map(bios_memory_map_t *buffer); // buffer must be in [0x10000, 0
 int get_drive_params(uint8_t dev, drive_params_t *buffer);
 uint16_t get_boot_device_sector_size();
 uint16_t get_sector_size(uint8_t dev);
+int get_vesa_control_info(vesa_control_info_t *buffer);
+int get_vesa_mode_info(uint16_t mode, vesa_mode_info_t *buffer);
+int set_vesa_mode(uint16_t mode);
 
 #endif // _WDOS_BOOTLOADER_CDROM_STAGE2_BIOS_H_
