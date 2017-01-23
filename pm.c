@@ -22,16 +22,16 @@ inline void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uin
     ptr->offset2 = (offset >> 16) & 0xFFFF;
 }
 
+inline void prepare_tss_gdt_entry()
+{
+    fill_descriptor(&gdt32_tss, (uintptr_t)&tss_entry, sizeof(tss_entry) - 1,
+                    DESCRIPTOR_ATTR_TSS | DESCRIPTOR_ATTR_DPL3);
+}
+
 void init_pm()
 {
     tss_entry.iomap_base = sizeof(tss_entry_t);
     prepare_tss_gdt_entry();
-}
-
-void prepare_tss_gdt_entry()
-{
-    fill_descriptor(&gdt32_tss, (uintptr_t)&tss_entry, sizeof(tss_entry) - 1,
-                    DESCRIPTOR_ATTR_TSS | DESCRIPTOR_ATTR_DPL3);
 }
 
 inline void reset_tss_busy(descriptor_entry_t *ptr)
@@ -47,7 +47,7 @@ inline void flush_tss()
                   : "r"((uint16_t)SELECTOR_TSS));
 }
 
-void set_tss_stack(ureg_t stack)
+void set_tss_stack0(ureg_t stack)
 {
     tss_entry.ss0 = SELECTOR_KERNEL_DATA;
     tss_entry.esp0 = stack;

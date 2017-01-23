@@ -1,4 +1,4 @@
-megs: 1024
+megs: 16
 
 romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest

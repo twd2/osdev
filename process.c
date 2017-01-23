@@ -131,7 +131,7 @@ void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 
     // change registers to switch process
     load_registers(frame, &processes[current_process].registers);
-    set_tss_stack(processes[current_process].kernel_stack);
+    set_tss_stack0(processes[current_process].kernel_stack);
     // TODO: paging
 
 out:

@@ -18,11 +18,12 @@ void init_idle()
 void idle_entry()
 {
     kprint("[KDEBUG] I am system IDLE!\n");
-    kprint("My PID=");
+    kprint("[IDLE] My PID=");
     kprint_int(get_pid());
     kprint("\n");
     while (true)
     {
-        asm volatile ("hlt");
+        sys_yield();
+        // asm volatile ("hlt");
     }
 }

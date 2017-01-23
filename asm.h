@@ -4,7 +4,6 @@
 #include <runtime/types.h>
 #include <pm.h>
 
-extern tss_entry_t tss_ptr;
 extern descriptor_entry_t gdt32_tss;
 extern gate_entry_t idt_ptr[256];
 // unused: extern descriptor_entry_t gdt32_ptr[5];
@@ -32,5 +31,30 @@ void spinlock_init(spinlock_t *l);
 bool spinlock_try_lock(spinlock_t *l);
 void spinlock_wait_and_lock(spinlock_t *l);
 void spinlock_release(spinlock_t *l);
+
+#define save_flags(flags) \
+    do \
+    { \
+        asm volatile ("pushf\n" \
+                      "pop %0" \
+                      : "=g"(flags) \
+                      : \
+                      : "memory"); \
+    } \
+    while (0)
+
+#define restore_flags(flags) \
+    do \
+    { \
+        asm volatile ("push %0\n" \
+                      "popf" \
+                      : \
+                      : "g"(flags) \
+                      : "memory"); \
+    } \
+    while (0)
+
+#define cli() asm volatile ("cli")
+#define sti() asm volatile ("sti")
 
 #endif // _WDOS_KERNEL_ASM_H_

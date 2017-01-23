@@ -8,15 +8,12 @@ void init_vga()
 
 void vga_set_start_address(uint16_t *gm)
 {
-    uint16_t start_address = (uint16_t)(((uintptr_t)gm - VGA_GRAPHICS_MEMORY_START_ADDRESS) >> 1);
+    uint16_t start_address =
+        (uint16_t)(((uintptr_t)gm - (uintptr_t)VGA_GRAPHICS_MEMORY_START_ADDRESS) >> 1);
 
-    // save eflags and cli
-    ureg_t eflags;
-    asm volatile ("pushf\n"
-                  "pop %0\n"
-                  "cli"
-                  : "=g"(eflags)
-                  :);
+    ureg_t flags;
+    save_flags(flags);
+    cli();
 
     outb(CRTC_ADDRESS, CRTC_START_ADDRESS_HIGH);
     io_delay();
@@ -27,24 +24,16 @@ void vga_set_start_address(uint16_t *gm)
     outb(CRTC_DATA, start_address & 0xFF);
     io_delay();
 
-    // restore eflags
-    asm volatile ("push %0\n"
-                  "popf"
-                  :
-                  : "g"(eflags));
+    restore_flags(flags);
 }
 
 void vga_set_cursor_location(uint8_t x, uint8_t y)
 {
     uint16_t location = y * VGA_WIDTH + x;
 
-    // save eflags and cli
-    ureg_t eflags;
-    asm volatile ("pushf\n"
-                  "pop %0\n"
-                  "cli"
-                  : "=g"(eflags)
-                  :);
+    ureg_t flags;
+    save_flags(flags);
+    cli();
 
     outb(CRTC_ADDRESS, CRTC_CURSOR_LOCATION_HIGH);
     io_delay();

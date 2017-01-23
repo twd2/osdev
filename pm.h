@@ -94,11 +94,11 @@ typedef struct tss_entry
 
 void fill_descriptor(descriptor_entry_t *ptr, uint32_t base, uint32_t limit, uint32_t attr);
 void fill_gate(gate_entry_t *ptr, uint16_t selector, uint32_t offset, uint8_t attr);
-void init_pm();
 void prepare_tss_gdt_entry();
+void init_pm();
 void reset_tss_busy(descriptor_entry_t *ptr);
 void flush_tss();
-void set_tss_stack(ureg_t stack);
+void set_tss_stack0(ureg_t stack);
 void prepare_idt();
 
 #endif // _WDOS_KERNEL_PM_H_

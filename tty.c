@@ -268,6 +268,16 @@ uint8_t kprint_hex_long(uint64_t x)
     return kprint(buffer) + 2;
 }
 
+uint8_t kprint_byte(uint8_t x)
+{
+#define HEX_COUNT (sizeof(x) * 2)
+    kprint("0x");
+    char buffer[HEX_COUNT + 1] = { '\0' };
+    btoh(x, buffer);
+#undef HEX_COUNT
+    return kprint(buffer) + 2;
+}
+
 uint32_t kprint_ok_fail(const char *str, bool ok)
 {
     uint32_t len = kprint(str);

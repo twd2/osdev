@@ -3,6 +3,7 @@
 #include <tty.h>
 #include <pm.h>
 #include <asm.h>
+#include <mm/mm.h>
 #include <syscall.h>
 #include <interrupt.h>
 #include <driver/8259a.h>
@@ -11,12 +12,8 @@
 #include <process.h>
 #include <syscall_impl.h>
 #include <idle.h>
+#include <driver/vesa.h>
 
-extern uint8_t end_of_kernel;
-void *free_mem_start = &end_of_kernel;
-void *free_mem_end = NULL; // [free_mem_start, free_mem_end)
-uint32_t memory_map_count;
-memory_map_t memory_map[16];
 static uint8_t process_stack[0x8000];
 
 void delay(int x)
@@ -51,8 +48,8 @@ void process1()
         kprint_int(++i);
         kprint("\n");
         ktty_leave();
-        kprint("calling sys_delay(1)...");
-        sys_delay(1);
+        //kprint("calling sys_delay(1)...");
+        //sys_delay(1);
         //delay(1);
     }
     // TODO: sys_exit
@@ -80,8 +77,8 @@ void process2()
         kprint_int(++i);
         kprint("\n");
         ktty_leave();
-        kprint("calling sys_delay(2)...");
-        sys_delay(2);
+        //kprint("calling sys_delay(2)...");
+        //sys_delay(2);
         //delay(2);
     }
     // TODO: sys_exit
@@ -122,31 +119,8 @@ void print_multiboot_info(int mb_magic, multiboot_info_t *mb_info)
     kprint(" bytes,\n-> cmdline at ");
     kprint_hex(mb_info->cmdline);
     kprint(", cmdline=\"");
-    kprint((char *)mb_info->cmdline);
+    kprint((char *)__VA((void *)mb_info->cmdline));
     kprint("\"\n");
-}
-
-void copy_mem_map(multiboot_info_t *mb_info)
-{
-    memory_map_long_t *mmap = (memory_map_long_t *)memory_map;
-    memory_map_t *mb_mmap = (memory_map_t *)mb_info->mmap_addr;
-    memory_map_t *mb_mmap_end = (memory_map_t *)(mb_info->mmap_addr + mb_info->mmap_length);
-
-    memory_map_count = 0;
-    while (mb_mmap != mb_mmap_end)
-    {
-        if (mb_mmap->type == MEMORY_TYPE_USABLE)
-        {
-            mmap[memory_map_count].base_low = mb_mmap->base_addr_low;
-            mmap[memory_map_count].base_high = mb_mmap->base_addr_high;
-            mmap[memory_map_count].length_low = mb_mmap->length_low;
-            mmap[memory_map_count].length_high = mb_mmap->length_high;
-            ++memory_map_count;
-        }
-
-        //next
-        mb_mmap = (memory_map_t *)((uint8_t *)mb_mmap + mb_mmap->size + sizeof(mb_mmap->size));
-    }
 }
 
 void print_mem_info()

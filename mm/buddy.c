@@ -14,7 +14,6 @@ void buddy_init(buddy_t *b, bucket_t *buckets, size_t bucket_count,
     // assert is_power_of_2(page_size)
     b->page_size_log2 = bits_log2(page_size);
 
-
     // init nodes
     for (size_t i = 0; i < bucket_count; ++i)
     {
