@@ -17,7 +17,7 @@ void init_idle()
 void idle_entry()
 {
     process_set_priority(PROCESS_PRIORITY_MIN);
-    kprint("[KDEBUG] I am system IDLE!\n");
+    kprint("[IDLE] I am system IDLE!\n");
     kprint("[IDLE] My PID=");
     kprint_int(get_pid());
     kprint("\n");

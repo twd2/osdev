@@ -4,6 +4,7 @@
 #include <asm.h>
 #include <process.h>
 #include <driver/vesa.h>
+#include <syscall.h>
 
 static uint8_t dwm_stack[0x1000];
 
@@ -17,8 +18,16 @@ void init_dwm()
 
 void dwm_entry()
 {
+    if (!vesa_available)
+    {
+        process_set_priority(PROCESS_PRIORITY_MIN);
+        kprint("[DWM] No GUI available :(\n");
+        while (true)
+        {
+            sys_yield();
+        }
+    }
     process_set_priority(PROCESS_PRIORITY_MAX);
-    // vesa_clear(0x6060ff);
     kprint("[DWM] Inited, press F8 to enter GUI.\n");
     while (true)
     {
@@ -28,7 +37,8 @@ void dwm_entry()
             {
                 sys_yield();
             }
-            vesa_clear(0x6060ff);
+            vesa_clear(0x00a8a8);
+            //vesa_clear(0x6060ff);
         }
         kprint("[DWM] Rendering...\n");
         for (int i = 0; i < 26; ++i)
@@ -67,11 +77,11 @@ void dwm_entry()
             vesa_draw_vline(520 + i, 10, 30, 0x0000ff | (i << 8));
         }
         vesa_fill_rect(50, 50, 50, 50,   0xff0000);
-        vesa_fill_rect(101, 50, 50, 50,  0x00ff00);
-        vesa_fill_rect(152, 50, 50, 50,  0x0000ff);
-        vesa_fill_rect(50, 101, 50, 50,  0x00ffff);
-        vesa_fill_rect(101, 101, 50, 50, 0xff00ff);
-        vesa_fill_rect(152, 101, 50, 50, 0xffff00);
+        vesa_fill_rect(105, 50, 50, 50,  0x00ff00);
+        vesa_fill_rect(160, 50, 50, 50,  0x0000ff);
+        vesa_fill_rect(50, 105, 50, 50,  0x00ffff);
+        vesa_fill_rect(105, 105, 50, 50, 0xff00ff);
+        vesa_fill_rect(160, 105, 50, 50, 0xffff00);
         /*vesa_draw_hline(0, 570, 800, 0xffffff);
         vesa_draw_vline(0, 570, 29, 0xffffff);
         vesa_draw_hline(0, 599, 800, 0);

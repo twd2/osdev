@@ -301,20 +301,20 @@ void vesa_fill_string(size_t x0, size_t y0, size_t width, const char *str, color
 void vesa_init_tty_color()
 {
     vesa_tty_color[TTY_COLOR_BLACK] = vesa_device_color(MKCOLOR(0, 0, 0));
-    vesa_tty_color[TTY_COLOR_BLUE] = vesa_device_color(MKCOLOR(0, 0, 128));
-    vesa_tty_color[TTY_COLOR_GREEN] = vesa_device_color(MKCOLOR(0, 128, 0));
-    vesa_tty_color[TTY_COLOR_CYAN] = vesa_device_color(MKCOLOR(0, 128, 128));
-    vesa_tty_color[TTY_COLOR_RED] = vesa_device_color(MKCOLOR(128, 0, 0));
-    vesa_tty_color[TTY_COLOR_MAGENTA] = vesa_device_color(MKCOLOR(128, 0, 128));
-    vesa_tty_color[TTY_COLOR_BROWN] = vesa_device_color(MKCOLOR(128, 128, 0));
+    vesa_tty_color[TTY_COLOR_BLUE] = vesa_device_color(MKCOLOR(0, 0, 168));
+    vesa_tty_color[TTY_COLOR_GREEN] = vesa_device_color(MKCOLOR(0, 168, 0));
+    vesa_tty_color[TTY_COLOR_CYAN] = vesa_device_color(MKCOLOR(0, 168, 168));
+    vesa_tty_color[TTY_COLOR_RED] = vesa_device_color(MKCOLOR(168, 0, 0));
+    vesa_tty_color[TTY_COLOR_MAGENTA] = vesa_device_color(MKCOLOR(168, 0, 168));
+    vesa_tty_color[TTY_COLOR_BROWN] = vesa_device_color(MKCOLOR(168, 87, 0));
     vesa_tty_color[TTY_COLOR_LIGHTGREY] = vesa_device_color(MKCOLOR(168, 168, 168));
-    vesa_tty_color[TTY_COLOR_DARKGREY] = vesa_device_color(MKCOLOR(128, 128, 128));
-    vesa_tty_color[TTY_COLOR_LIGHTBLUE] = vesa_device_color(MKCOLOR(0, 0, 255));
-    vesa_tty_color[TTY_COLOR_LIGHTGREEN] = vesa_device_color(MKCOLOR(0, 255, 0));
-    vesa_tty_color[TTY_COLOR_LIGHTCYAN] = vesa_device_color(MKCOLOR(0, 255, 255));
-    vesa_tty_color[TTY_COLOR_LIGHTRED] = vesa_device_color(MKCOLOR(255, 0, 0));
-    vesa_tty_color[TTY_COLOR_LIGHTMAGENTA] = vesa_device_color(MKCOLOR(255, 0, 255));
-    vesa_tty_color[TTY_COLOR_LIGHTBROWN] = vesa_device_color(MKCOLOR(255, 255, 0));
+    vesa_tty_color[TTY_COLOR_DARKGREY] = vesa_device_color(MKCOLOR(87, 87, 87));
+    vesa_tty_color[TTY_COLOR_LIGHTBLUE] = vesa_device_color(MKCOLOR(87, 87, 255));
+    vesa_tty_color[TTY_COLOR_LIGHTGREEN] = vesa_device_color(MKCOLOR(87, 255, 87));
+    vesa_tty_color[TTY_COLOR_LIGHTCYAN] = vesa_device_color(MKCOLOR(87, 255, 255));
+    vesa_tty_color[TTY_COLOR_LIGHTRED] = vesa_device_color(MKCOLOR(255, 87, 87));
+    vesa_tty_color[TTY_COLOR_LIGHTMAGENTA] = vesa_device_color(MKCOLOR(255, 87, 255));
+    vesa_tty_color[TTY_COLOR_LIGHTBROWN] = vesa_device_color(MKCOLOR(255, 255, 87));
     vesa_tty_color[TTY_COLOR_WHITE] = vesa_device_color(MKCOLOR(255, 255, 255));
 }
 
