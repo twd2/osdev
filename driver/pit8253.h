@@ -16,7 +16,7 @@
 #define PIT8253_MCR_COUNTER2 (2 << 6)
 #define PIT8253_MCR_WRITE_LH (3 << 4)
 
-#define IRQ_FREQ 100 // Hz
+#define IRQ_FREQ 500 // Hz
 
 void init_pit8253();
 void set_clock_freq(uint32_t interval);

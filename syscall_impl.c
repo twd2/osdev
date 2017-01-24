@@ -33,12 +33,13 @@ static void do_add(interrupt_frame_t *frame, int a, int b)
 
 static void do_yield(interrupt_frame_t *frame)
 {
+    process_current()->ticks = 1;
     process_irq_handler(IRQ_CLOCK, frame);
 }
 
 static void do_delay(interrupt_frame_t *frame, int x)
 {
-    enable_interrupt(); // allow process switch
+    enable_interrupt(); // allow context switch
 
     while (!x);
 

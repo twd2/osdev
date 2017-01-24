@@ -11,13 +11,13 @@ uint32_t dwm_pid;
 
 void init_dwm()
 {
-    dwm_pid = process_create_kernel_thread("dwm", &dwm_entry,
-                                            &dwm_stack[sizeof(dwm_stack)]);
+    dwm_pid = process_create_kernel("dwm", &dwm_entry, &dwm_stack[sizeof(dwm_stack)]);
     kprint_ok_fail("[KDEBUG] create windows manager process", dwm_pid != (uint32_t)-1);
 }
 
 void dwm_entry()
 {
+    process_set_priority(PROCESS_PRIORITY_MAX);
     // vesa_clear(0x6060ff);
     kprint("[DWM] Inited, press F8 to enter GUI.\n");
     while (true)

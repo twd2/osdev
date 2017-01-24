@@ -28,6 +28,7 @@ void delay(int x)
 
 void process1()
 {
+    process_set_priority(PROCESS_PRIORITY_MAX);
     kset_color(TTY_MKCOLOR(TTY_COLOR_LIGHTCYAN, TTY_COLOR_BLACK));
     kprint("My PID=");
     kprint_int(get_pid());
@@ -46,6 +47,8 @@ void process1()
         kprint_int(get_pid());
         kprint(" A");
         kprint_int(++i);
+        kprint(" ");
+        kprint_hex(&i);
         kprint("\n");
         ktty_leave();
         //kprint("calling sys_delay(1)...");
@@ -75,6 +78,8 @@ void process2()
         kprint_int(get_pid());
         kprint(" B");
         kprint_int(++i);
+        kprint(" ");
+        kprint_hex(&i);
         kprint("\n");
         ktty_leave();
         //kprint("calling sys_delay(2)...");
@@ -91,6 +96,7 @@ void process3()
     kprint("\nThis is tty ");
     kprint_int(get_ttyid() + 1);
     kprint(".\n");
+    process_set_priority(PROCESS_PRIORITY_MIN);
     while (true)
     {
         sys_yield();
@@ -185,18 +191,13 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
         return 0xdeadbeef;
     }
 
-    init_vesa(mb_info);
-    kprint("abcdefghijklmnopqrstuvwxyz\n");
-    kprint("ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
-
-    //for (;;) asm volatile ("cli\nhlt");
     init_mm(mb_info);
     print_mem_info();
 
-    kprint_ok_fail("[KDEBUG] init PIC 8259a", true);
+    kprint_ok_fail("[KDEBUG] init PIC8259A", true);
     init_pic8259a();
     
-    kprint_ok_fail("[KDEBUG] init PIT 8253", true);
+    kprint_ok_fail("[KDEBUG] init PIT8253", true);
     init_pit8253();
 
     kprint_ok_fail("[KDEBUG] init keyboard", true);
@@ -211,22 +212,17 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     init_dwm();
 
     tty_switch(default_tty + 1);
-    uint32_t kpid = process_create("kernel", SELECTOR_KERNEL_CODE, &process1,
-                                   SELECTOR_KERNEL_DATA, &process_stack[0x1000],
-                                   &process_stack[0x2000]);
+    uint32_t kpid = process_create_kernel("kernel", &process1, &process_stack[0x1000]);
     kprint_ok_fail("[KDEBUG] create kernel process", kpid != (uint32_t)-1);
     tty_switch(default_tty + 2);
-    uint32_t ipid = process_create("init", SELECTOR_USER_CODE, &process2,
-                                   SELECTOR_USER_DATA, &process_stack[0x3000],
+    uint32_t ipid = process_create("init", &process2, &process_stack[0x3000],
                                    &process_stack[0x4000]);
     kprint_ok_fail("[KDEBUG] create init process", ipid != (uint32_t)-1);
     tty_switch(default_tty + 3);
-    uint32_t spid = process_create("shell", SELECTOR_USER_CODE, &process3,
-                                   SELECTOR_USER_DATA, &process_stack[0x5000],
+    uint32_t spid = process_create("shell", &process3, &process_stack[0x5000],
                                    &process_stack[0x6000]);
     tty_switch(default_tty + 4);
-    uint32_t s2pid = process_create("shell", SELECTOR_USER_CODE, &process3,
-                                    SELECTOR_USER_DATA, &process_stack[0x7000],
+    uint32_t s2pid = process_create("shell", &process3, &process_stack[0x7000],
                                     &process_stack[0x8000]);
     tty_switch(default_tty);
 
@@ -235,7 +231,9 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     kprint(        " \001\0011\001\0022\001\0033\001\0044\001\0055\001\0066\001\0077"
            "\001\0108\001\0119\001\012A\001\013B\001\014C\001\015D\001\016E\001\017F\r\n"
            TTY_SET_COLOR TTY_DEFAULT_COLOR);
-
+    kprint("[KDEBUG] process stack");
+    kprint_hex(process_stack);
+    kprint("\n");
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);
 

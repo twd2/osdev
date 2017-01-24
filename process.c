@@ -5,6 +5,7 @@
 #include <interrupt.h>
 #include <tty.h>
 #include <stdlib/string.h>
+#include <stdlib/memory.h>
 
 static process_t processes[16];
 static uint32_t process_count = 0;
@@ -40,164 +41,199 @@ process_t *process_current()
     }
 }
 
-#define MOVE_REGISTERS(dest, src) \
-    dest->gs = src->gs; \
-    dest->fs = src->fs; \
-    dest->es = src->es; \
-    dest->ds = src->ds; \
-    dest->edi = src->edi; \
-    dest->esi = src->esi; \
-    dest->ebp = src->ebp; \
-    dest->ebx = src->ebx; \
-    dest->edx = src->edx; \
-    dest->ecx = src->ecx; \
-    dest->eax = src->eax; \
-    dest->eip = src->eip; \
-    dest->cs = src->cs; \
-    dest->eflags = (dest->eflags & ~EFLAGS_MASK) | (src->eflags & EFLAGS_MASK);
-
-// only appear when cs.RPL != 0
-#define MOVE_OPTIONAL_REGISTERS(dest, src) \
-    dest->esp = src->esp; \
-    dest->ss = src->ss;
-
-static inline void store_registers(interrupt_frame_t *dest, const interrupt_frame_t *src)
+inline interrupt_frame_t *process_registers(process_t *proc)
 {
-    if ((src->cs & SELECTOR_RPL_MASK) != SELECTOR_RPL0)
+    if ((proc->registers.cs & SELECTOR_RPL_MASK) != SELECTOR_RPL0)
     {
-        MOVE_REGISTERS(dest, src);
-        MOVE_OPTIONAL_REGISTERS(dest, src);
+        return &(proc->registers);
     }
     else
     {
-        dest->isr_esp = src->isr_esp;
-        dest->cs = src->cs;
+        return (interrupt_frame_t *)(proc->registers.isr_esp - sizeof(proc->registers.isr_esp));
     }
 }
 
-static inline void load_registers(interrupt_frame_t *dest, interrupt_frame_t *src)
+static inline void store_registers(process_t *proc, const interrupt_frame_t *src)
 {
-    // src CPL=3
+    interrupt_frame_t *frame = &proc->registers;
     if ((src->cs & SELECTOR_RPL_MASK) != SELECTOR_RPL0)
     {
-        // save system flags
-        src->eflags = (dest->eflags & ~EFLAGS_MASK) | (src->eflags & EFLAGS_MASK);
-        dest->isr_esp = (uintptr_t)&src->SECOND_REGISTER;
+        frame->gs = src->gs;
+        frame->fs = src->fs;
+        frame->es = src->es;
+        frame->ds = src->ds;
+        frame->edi = src->edi;
+        frame->esi = src->esi;
+        frame->ebp = src->ebp;
+        frame->ebx = src->ebx;
+        frame->edx = src->edx;
+        frame->ecx = src->ecx;
+        frame->eax = src->eax;
+        frame->eip = src->eip;
+        frame->cs = src->cs;
+        frame->esp = src->esp;
+        frame->ss = src->ss;
+        // preserve system flags
+        frame->eflags = (frame->eflags & ~EFLAGS_MASK) | (src->eflags & EFLAGS_MASK);
     }
     else
     {
-        interrupt_frame_t *frame = (interrupt_frame_t *)(src->isr_esp - sizeof(uint32_t));
-        // save system flags
-        frame->eflags = (dest->eflags & ~EFLAGS_MASK) | (frame->eflags & EFLAGS_MASK);
-        dest->isr_esp = src->isr_esp;
+        // For kernel threads,
+        // registers are stored (pushed) in thread's own (kernel) stack,
+        // so just record the ESP and remember it's a kernel thread using CS here.
+        frame->isr_esp = src->isr_esp;
+        frame->cs = src->cs;
     }
+}
+
+static inline void load_registers(interrupt_frame_t *dest, process_t *proc)
+{
+    interrupt_frame_t *frame = process_registers(proc);
+
+    // preserve system flags
+    frame->eflags = (dest->eflags & ~EFLAGS_MASK) | (frame->eflags & EFLAGS_MASK);
+
+    // If this is not a kernel thread,
+    // restoring its kernel stack is also needed.
+    if ((frame->cs & SELECTOR_RPL_MASK) != SELECTOR_RPL0)
+    {
+        set_tss_stack0(proc->kernel_stack);
+    }
+
+    // Just let ESP point to the registers stored.
+    dest->isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
+
     // TODO: paging
 }
 
-#undef MOVE_REGISTERS
-#undef MOVE_OPTIONAL_REGISTERS
-
-void process_schedule()
+bool process_schedule()
 {
+    process_t *proc = process_current();
+    if (proc)
+    {
+        --proc->ticks;
+        if (0 < proc->ticks && proc->ticks < proc->priority)
+        {
+            return false;
+        }
+        proc->ticks = proc->priority;
+    }
+
     // TODO: schedule
     ++current_process;
     if (current_process >= process_count)
     {
         current_process = 0;
     }
+    return true;
 }
 
 void process_irq_handler(uint8_t irq, interrupt_frame_t *frame)
 {
+    if (!process_count)
+    {
+        kprint_ok_fail("[KDEBUG] schedule failed: no process", false);
+        return;
+    }
+
     if (!spinlock_try_lock(&process_lock))
     {
         return;
     }
 
-    // save current registers
-    if (current_process != (uint32_t)(-1))
+    process_t *proc_interrupted = process_current();
+    if (process_schedule()) // if need to switch
     {
-        store_registers(&processes[current_process].registers, frame);
+        // current_process changed
+
+        // save current registers
+        if (proc_interrupted)
+        {
+            store_registers(proc_interrupted, frame);
+        }
+
+        process_t *proc_new = process_current();
+
+        // change registers to switch context
+        load_registers(frame, proc_new);
+        // TODO: paging
     }
-
-    if (!process_count)
-    {
-        kprint_ok_fail("[KDEBUG] schedule failed: no process", false);
-        goto out;
-    }
-
-    // current_process changed
-    process_schedule();
-
-    // change registers to switch process
-    load_registers(frame, &processes[current_process].registers);
-    set_tss_stack0(processes[current_process].kernel_stack);
-    // TODO: paging
 
 out:
     spinlock_release(&process_lock);
 }
 
-uint32_t process_create(const char *name, uint16_t entry_point_seg, entry_point_t entry_point,
-                        uint16_t stack_seg, void *stack, void *kernel_stack)
+uint32_t process_create(const char *name, entry_point_t entry_point, void *stack,
+                        void *kernel_stack)
 {
     if (process_count >= 16)
     {
         kprint_ok_fail("[KDEBUG] create process failed: process limit exceeded", false);
         return -1;
     }
+
     spinlock_wait_and_lock(&process_lock);
+
     process_t *proc = &processes[process_count];
     ++process_count;
+
+    memset(proc, 0, sizeof(process_t));
+
     strcpy(proc->name, name);
     proc->tty = tty_current_screen();
-    proc->registers.cs = entry_point_seg;
+    proc->ticks = proc->priority = PROCESS_PRIORITY_DEFAULT;
+
+    proc->registers.cs = SELECTOR_USER_CODE;
     proc->registers.eip = (uintptr_t)entry_point;
-    proc->registers.ss = stack_seg;
+    proc->registers.ss = SELECTOR_USER_DATA;
     proc->registers.esp = (uintptr_t)stack;
-    proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs = stack_seg;
+    proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs =
+        SELECTOR_USER_DATA;
+
     proc->kernel_stack = (uintptr_t)kernel_stack;
-    // process.cpl == 0
-    if ((entry_point_seg & SELECTOR_RPL_MASK) == SELECTOR_RPL0)
-    {
-        // allocate interrupt_frame 
-        interrupt_frame_t *frame = (interrupt_frame_t *)(stack - sizeof(interrupt_frame_t));
-        frame->isr_esp = proc->registers.isr_esp;
-        frame->cs = proc->registers.cs;
-        frame->eip = proc->registers.eip;
-        frame->ds = frame->es = frame->fs = frame->gs = stack_seg;
-        proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
-    }
+
     spinlock_release(&process_lock);
     return process_count - 1;
 }
 
-uint32_t process_create_kernel_thread(const char *name, entry_point_t entry_point, void *stack)
+uint32_t process_create_kernel(const char *name, entry_point_t entry_point, void *stack)
 {
     if (process_count >= 16)
     {
         kprint_ok_fail("[KDEBUG] create process failed: process limit exceeded", false);
         return -1;
     }
+
     spinlock_wait_and_lock(&process_lock);
+
     process_t *proc = &processes[process_count];
     ++process_count;
+
+    memset(proc, 0, sizeof(process_t));
+
     strcpy(proc->name, name);
     proc->tty = tty_current_screen();
+    proc->ticks = proc->priority = PROCESS_PRIORITY_DEFAULT;
+
     proc->registers.cs = SELECTOR_KERNEL_CODE;
-    proc->registers.eip = (uintptr_t)entry_point;
-    proc->registers.ss = SELECTOR_KERNEL_DATA;
-    proc->registers.esp = (uintptr_t)stack;
-    proc->registers.ds = proc->registers.es = proc->registers.fs = proc->registers.gs =
-        SELECTOR_KERNEL_DATA;
     proc->kernel_stack = NULL; // already kernel, so kernel_stack = NULL for TSS
-    // allocate interrupt_frame
+
+    // "push" interrupt_frame
     interrupt_frame_t *frame = (interrupt_frame_t *)(stack - sizeof(interrupt_frame_t));
-    frame->isr_esp = proc->registers.isr_esp;
     frame->cs = SELECTOR_KERNEL_CODE;
-    frame->eip = proc->registers.eip;
+    frame->eip = (uintptr_t)entry_point;
     frame->ds = frame->es = frame->fs = frame->gs = SELECTOR_KERNEL_DATA;
     proc->registers.isr_esp = (uintptr_t)&frame->SECOND_REGISTER;
+
     spinlock_release(&process_lock);
     return process_count - 1;
+}
+
+void process_set_priority(uint8_t priority)
+{
+    if (priority < PROCESS_PRIORITY_MIN || priority > PROCESS_PRIORITY_MAX)
+    {
+        return;
+    }
+    process_current()->priority = priority;
 }
