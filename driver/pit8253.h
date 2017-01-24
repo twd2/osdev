@@ -1,5 +1,5 @@
-#ifndef _WDOS_KERNEL_DRIVER_CLOCK_H_
-#define _WDOS_KERNEL_DRIVER_CLOCK_H_
+#ifndef _WDOS_KERNEL_DRIVER_PIT8253_H_
+#define _WDOS_KERNEL_DRIVER_PIT8253_H_
 
 #include <runtime/types.h>
 
@@ -18,7 +18,7 @@
 
 #define IRQ_FREQ 100 // Hz
 
-void init_clock();
-void set_freq(uint32_t interval);
+void init_pit8253();
+void set_clock_freq(uint32_t interval);
 
-#endif // _WDOS_KERNEL_DRIVER_CLOCK_H_
+#endif // _WDOS_KERNEL_DRIVER_PIT8253_H_

@@ -1,12 +1,12 @@
-#include "clock.h"
+#include "pit8253.h"
 #include <io.h>
 
-void init_clock()
+void init_pit8253()
 {
-    set_freq(IRQ_FREQ);
+    set_clock_freq(IRQ_FREQ);
 }
 
-inline void set_freq(uint32_t freq)
+inline void set_clock_freq(uint32_t freq)
 {
     uint16_t counter = (uint16_t)(CLOCK_FREQ / freq);
     outb(PIT8253_MCR,

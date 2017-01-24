@@ -1,8 +1,8 @@
-#include "8259a.h"
+#include "pic8259a.h"
 #include <io.h>
 #include <interrupt.h>
 
-void init_8259a()
+void init_pic8259a()
 {
     outb(PIC8259A_MASTER_COMMAND, 0b00010001); // ICW1: PC, is ICW1, edge, 8B vec, cascade, has ICW4
     io_delay();

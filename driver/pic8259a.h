@@ -1,5 +1,5 @@
-#ifndef _WDOS_KERNEL_8259A_H_
-#define _WDOS_KERNEL_8259A_H_
+#ifndef _WDOS_KERNEL_PIC8259A_H_
+#define _WDOS_KERNEL_PIC8259A_H_
 
 #include <runtime/types.h>
 
@@ -11,7 +11,7 @@
 #define PIC8259A_SLAVE_DATA	(PIC8259A_SLAVE_ADDRESS + 1)
 #define PIC8259A_EOI 0x20
 
-void init_8259a();
+void init_pic8259a();
 void send_eoi(uint8_t irq);
 
-#endif // _WDOS_KERNEL_8259A_H_
+#endif // _WDOS_KERNEL_PIC8259A_H_

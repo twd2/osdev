@@ -6,8 +6,8 @@
 #include <mm/mm.h>
 #include <syscall.h>
 #include <interrupt.h>
-#include <driver/8259a.h>
-#include <driver/clock.h>
+#include <driver/pic8259a.h>
+#include <driver/pit8253.h>
 #include <driver/keyboard.h>
 #include <process.h>
 #include <syscall_impl.h>
@@ -194,10 +194,10 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     print_mem_info();
 
     kprint_ok_fail("[KDEBUG] init PIC 8259a", true);
-    init_8259a();
+    init_pic8259a();
     
     kprint_ok_fail("[KDEBUG] init PIT 8253", true);
-    init_clock();
+    init_pit8253();
 
     kprint_ok_fail("[KDEBUG] init keyboard", true);
     init_keyboard();

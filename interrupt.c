@@ -1,6 +1,6 @@
 #include <interrupt.h>
 #include <tty.h>
-#include <driver/8259a.h>
+#include <driver/pic8259a.h>
 #include <process.h>
 #include <syscall_impl.h>
 
