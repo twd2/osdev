@@ -153,7 +153,7 @@ interrupt_wrapper_common:
 %endrep
 
 ; protected mode related
-section .pm
+section .pm progbits alloc noexec write
 align 4
 
 gdt32_ptr: descriptor 0, 0, 0 ; none

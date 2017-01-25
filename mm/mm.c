@@ -107,8 +107,7 @@ void init_mm(multiboot_info_t *mb_info)
     free_mem_start = mm_align(free_mem_start);
     buddy_init(&buddy, buckets, BUCKET_COUNT, nodes, node_count, PAGE_SIZE);
     buddy_init_pages(&buddy, free_mem_start, free_mem_end - free_mem_start);
-    //print_buddy(&buddy);
-    //for (;;) asm volatile ("cli\nhlt");
+    // print_buddy(&buddy);
 }
 
 void *mm_alloc_pages(size_t count)

@@ -89,12 +89,18 @@ void dwm_entry()
         vesa_fill_rect(1, 571, 798, 28, 0x808080);*/
         vesa_draw_button_rect(0, 570, 800, 30, false);
         vesa_draw_button_rect(5, 575, 50, 20, false);
-        vesa_draw_button_rect(744, 575, 50, 20, true);
         vesa_fill_string(9, 578, -1, "Start", 0);
+        vesa_draw_button_rect(744, 575, 50, 20, true);
         vesa_fill_string(748, 578, -1, "23:17", 0);
         vesa_fill_string(328, 284, -1, "Welcome to WDOS!", 0);
         vesa_fill_string(296, 300, -1, "GUI is not implemented.", 0);
         vesa_fill_string(287, 316, -1, "Press F1~F7 to enter TTY.", 0);
+        delay(1000);
+        vesa_draw_button_rect(5, 575, 50, 20, true);
+        vesa_fill_string(10, 579, -1, "Start", 0);
+        delay(1000);
+        vesa_draw_button_rect(5, 575, 50, 20, false);
+        vesa_fill_string(9, 578, -1, "Start", 0);
         while (tty_current_screen() == tty_select(7))
         {
             sys_yield();

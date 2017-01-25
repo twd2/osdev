@@ -266,7 +266,7 @@ void vesa_draw_button_rect(size_t x0, size_t y0, size_t width, size_t height, bo
         vesa_draw_hline(x0, y0, width, 0xe0e0e0);
         vesa_draw_vline(x0, y0, height - 1, 0xe0e0e0);
         vesa_draw_hline(x0, y0 + height - 1, width, 0x303030);
-        vesa_draw_vline(x0 + width - 1, y0, height, 0x303030);
+        vesa_draw_vline(x0 + width - 1, y0 + 1, height - 1, 0x303030);
         vesa_fill_rect(x0 + 1, y0 + 1, width - 2, height - 2, 0x909090);
     }
     else
@@ -324,6 +324,8 @@ void vesa_tty_init(tty_t *tty, size_t i)
     tty->mem = (tty_colored_char_t *)mm_palloc(vesa_tty_driver.width *
                                                vesa_tty_driver.height *
                                                sizeof(tty_colored_char_t));
+    memset(tty->mem, 0, vesa_tty_driver.width * vesa_tty_driver.height *
+           sizeof(tty_colored_char_t));
 }
 
 void vesa_tty_rerender(tty_t *tty)
