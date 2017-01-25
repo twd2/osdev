@@ -99,8 +99,7 @@ void init_mm(multiboot_info_t *mb_info)
 
     bucket_t *buckets = (bucket_t *)mm_palloc(BUCKET_COUNT * sizeof(bucket_t));
 
-    //                        2 guards
-    const size_t node_count = 2 * BUCKET_COUNT + (uintptr_t)free_mem_end / PAGE_SIZE;
+    const size_t node_count = (uintptr_t)free_mem_end / PAGE_SIZE;
     page_node_t *nodes = (page_node_t *)mm_palloc(node_count * sizeof(page_node_t));
 
     mm_inited = true; // forbid mm_palloc

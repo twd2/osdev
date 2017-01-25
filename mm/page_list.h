@@ -16,7 +16,8 @@ struct page_node
 
 typedef struct page_list
 {
-    page_node_t *head, *tail; // guard
+    page_node_t _head, _tail; // guard instances
+    page_node_t *head, *tail; // guards
     size_t size;
     // size_t capacity;
     page_node_t *nodes; // fixed-size array

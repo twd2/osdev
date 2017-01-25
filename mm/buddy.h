@@ -13,7 +13,7 @@ typedef struct buddy
 {
     bucket_t *buckets;
     size_t bucket_count;
-    page_node_t *nodes; // first 2 * bucket_count nodes are for heads and tails of lists.
+    page_node_t *nodes;
     size_t node_count;
     size_t page_size;
     uint8_t page_size_log2;

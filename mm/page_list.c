@@ -4,15 +4,15 @@ void page_list_init(page_list_t *list, page_node_t *nodes)
 {
     page_node_t *head, *tail;
 
-    head = &nodes[0];
-    tail = &nodes[1];
+    head = &list->_head;
+    tail = &list->_tail;
 
     head->prev = NULL;
     head->next = tail;
     tail->prev = head;
     tail->next = NULL;
 
-    list->size = 2; // head + tail
+    list->size = 0;
     list->head = head;
     list->tail = tail;
     list->nodes = nodes;

@@ -7,7 +7,11 @@
 
 #define PAGE_SIZE 0x1000
 #define PAGE_SIZE_LOG2 12
-#define BUCKET_COUNT 20
+#ifndef X86_64
+#define BUCKET_COUNT 20 // 32 - 12
+#else
+#define BUCKET_COUNT 36 // 48 - 12
+#endif
 
 #define BIOS_MEM_MAP_MAX_COUNT 16
 

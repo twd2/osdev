@@ -17,18 +17,18 @@ void buddy_init(buddy_t *b, bucket_t *buckets, size_t bucket_count,
     // init buckets
     for (size_t i = 0; i < bucket_count; ++i)
     {
-        page_list_init(&(buckets[i].list), &nodes[i * 2]);
+        page_list_init(&(buckets[i].list), NULL);
     }
 }
 
 inline page_node_t *buddy_page_node(buddy_t *b, void *page)
 {
-    return &b->nodes[2 * b->bucket_count + ((uintptr_t)page >> b->page_size_log2)];
+    return &b->nodes[((uintptr_t)page >> b->page_size_log2)];
 }
 
 inline page_node_t *buddy_pfn_node(buddy_t *b, uintptr_t pfn)
 {
-    return &b->nodes[2 * b->bucket_count + pfn];
+    return &b->nodes[pfn];
 }
 
 inline void *buddy_align(buddy_t *b, void *ptr)
