@@ -7,7 +7,7 @@ inline void *mm_page_fault_va()
     void *ret;
     asm volatile ("mov %%cr2, %0"
                   : "=r"(ret)
-                  :)
+                  :);
     return ret;
 }
 

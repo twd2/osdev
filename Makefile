@@ -98,7 +98,13 @@ mm/buddy.o: mm/buddy.c
 mm/mm.o: mm/mm.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o thread.o idle.o dwm.o driver/pic8259a.o driver/pit8253.o driver/keyboard.o driver/vga.o driver/vesa.o driver/vga_font.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o mm/mm.o
+mm/page_fault.o: mm/page_fault.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+mm/paging.o: mm/paging.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o thread.o idle.o dwm.o driver/pic8259a.o driver/pit8253.o driver/keyboard.o driver/vga.o driver/vesa.o driver/vga_font.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o mm/mm.o mm/page_fault.o mm/paging.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 grub.iso: kernel.elf iso/boot/grub/grub.cfg
