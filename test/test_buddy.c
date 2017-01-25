@@ -61,7 +61,7 @@ int main()
     bucket_t *buckets = (bucket_t *)free1_begin;
     free1_begin += bucket_count * sizeof(bucket_t);
     page_node_t *nodes = (page_node_t *)free1_begin;
-    free1_begin += 2 * bucket_count + node_count * sizeof(page_node_t);
+    free1_begin += node_count * sizeof(page_node_t);
     
     buddy_init(&buddy, buckets, bucket_count, nodes, node_count, page_size);
     buddy_init_pages(&buddy, free1_begin, free1_end - free1_begin);
