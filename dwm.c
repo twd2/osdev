@@ -2,7 +2,7 @@
 
 #include <runtime/types.h>
 #include <asm.h>
-#include <process.h>
+#include <thread.h>
 #include <driver/vesa.h>
 #include <syscall.h>
 
@@ -12,23 +12,23 @@ uint32_t dwm_pid;
 
 void init_dwm()
 {
-    dwm_pid = process_create_kernel("dwm", &dwm_entry, &dwm_stack[sizeof(dwm_stack)]);
-    kprint_ok_fail("[KDEBUG] create windows manager process", dwm_pid != (uint32_t)-1);
+    dwm_pid = thread_create_kernel("dwm", &dwm_entry, &dwm_stack[sizeof(dwm_stack)]);
+    kprint_ok_fail("[KDEBUG] create windows manager thread", dwm_pid != (uint32_t)-1);
 }
 
 void dwm_entry()
 {
     if (!vesa_available)
     {
-        process_set_priority(PROCESS_PRIORITY_MIN);
+        thread_set_priority(THREAD_PRIORITY_MIN);
         kprint("[DWM] No GUI available :(\n");
         while (true)
         {
             sys_yield();
         }
     }
-    process_set_priority(PROCESS_PRIORITY_MAX);
-    kprint("[DWM] Inited, press F8 to enter GUI.\n");
+    thread_set_priority(THREAD_PRIORITY_MAX);
+    kprint("[DWM] Initialized, press F8 to enter GUI.\n");
     while (true)
     {
         if (tty_current_screen() != tty_select(7))

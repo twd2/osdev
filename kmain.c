@@ -9,12 +9,12 @@
 #include <driver/pic8259a.h>
 #include <driver/pit8253.h>
 #include <driver/keyboard.h>
-#include <process.h>
+#include <thread.h>
 #include <syscall_impl.h>
 #include <idle.h>
 #include <driver/vesa.h>
 
-static uint8_t process_stack[0x8000];
+static uint8_t thread_stack[0x8000];
 
 void delay(int x)
 {
@@ -26,9 +26,9 @@ void delay(int x)
     }
 }
 
-void process1()
+void thread1()
 {
-    process_set_priority(PROCESS_PRIORITY_MAX);
+    thread_set_priority(THREAD_PRIORITY_MAX);
     kset_color(TTY_MKCOLOR(TTY_COLOR_LIGHTCYAN, TTY_COLOR_BLACK));
     kprint("My PID=");
     kprint_int(get_pid());
@@ -58,7 +58,7 @@ void process1()
     // TODO: sys_exit
 }
 
-void process2()
+void thread2()
 {
     kset_color(TTY_MKCOLOR(TTY_COLOR_WHITE, TTY_COLOR_BLACK));
     kprint("My PID=");
@@ -89,14 +89,14 @@ void process2()
     // TODO: sys_exit
 }
 
-void process3()
+void thread3()
 {
     kprint("My PID=");
     kprint_int(get_pid());
     kprint("\nThis is tty ");
     kprint_int(get_ttyid() + 1);
     kprint(".\n");
-    process_set_priority(PROCESS_PRIORITY_MIN);
+    thread_set_priority(THREAD_PRIORITY_MIN);
     while (true)
     {
         sys_yield();
@@ -205,25 +205,25 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
 
     init_syscall_impl();
 
-    kprint_ok_fail("[KDEBUG] init process scheduler", true);
-    init_process();
+    kprint_ok_fail("[KDEBUG] init thread scheduler", true);
+    init_thread();
 
     init_idle();
     init_dwm();
 
     tty_switch(default_tty + 1);
-    uint32_t kpid = process_create_kernel("kernel", &process1, &process_stack[0x1000]);
-    kprint_ok_fail("[KDEBUG] create kernel process", kpid != (uint32_t)-1);
+    uint32_t kpid = thread_create_kernel("kernel", &thread1, &thread_stack[0x1000]);
+    kprint_ok_fail("[KDEBUG] create kernel thread", kpid != (uint32_t)-1);
     tty_switch(default_tty + 2);
-    uint32_t ipid = process_create("init", &process2, &process_stack[0x3000],
-                                   &process_stack[0x4000]);
-    kprint_ok_fail("[KDEBUG] create init process", ipid != (uint32_t)-1);
+    uint32_t ipid = thread_create("init", &thread2, &thread_stack[0x3000],
+                                  &thread_stack[0x4000]);
+    kprint_ok_fail("[KDEBUG] create init thread", ipid != (uint32_t)-1);
     tty_switch(default_tty + 3);
-    uint32_t spid = process_create("shell", &process3, &process_stack[0x5000],
-                                   &process_stack[0x6000]);
+    uint32_t spid = thread_create("shell", &thread3, &thread_stack[0x5000],
+                                  &thread_stack[0x6000]);
     tty_switch(default_tty + 4);
-    uint32_t s2pid = process_create("shell", &process3, &process_stack[0x7000],
-                                    &process_stack[0x8000]);
+    uint32_t s2pid = thread_create("shell", &thread3, &thread_stack[0x7000],
+                                   &thread_stack[0x8000]);
     tty_switch(default_tty);
 
     kprint(TTY_SET_COLOR "\013hello, world\b\b\b\b\btwd2.\n" TTY_SET_COLOR TTY_DEFAULT_COLOR);
@@ -231,8 +231,8 @@ int kmain(int mb_magic, multiboot_info_t *mb_info)
     kprint(        " \001\0011\001\0022\001\0033\001\0044\001\0055\001\0066\001\0077"
            "\001\0108\001\0119\001\012A\001\013B\001\014C\001\015D\001\016E\001\017F\r\n"
            TTY_SET_COLOR TTY_DEFAULT_COLOR);
-    kprint("[KDEBUG] process stack");
-    kprint_hex(process_stack);
+    kprint("[KDEBUG] thread stack ");
+    kprint_hex(thread_stack);
     kprint("\n");
     enable_interrupt();
     kprint_ok_fail("[KDEBUG] enable interrupt", true);

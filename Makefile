@@ -53,7 +53,7 @@ io.o: io.c
 syscall_impl.o: syscall_impl.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-process.o: process.c
+thread.o: thread.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 idle.o: idle.c
@@ -98,7 +98,7 @@ mm/buddy.o: mm/buddy.c
 mm/mm.o: mm/mm.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o process.o idle.o dwm.o driver/pic8259a.o driver/pit8253.o driver/keyboard.o driver/vga.o driver/vesa.o driver/vga_font.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o mm/mm.o
+kernel.elf: linker.ld loader.o kmain.o asm.o tty.o pm.o interrupt.o syscall.o io.o syscall_impl.o thread.o idle.o dwm.o driver/pic8259a.o driver/pit8253.o driver/keyboard.o driver/vga.o driver/vesa.o driver/vga_font.o stdlib/memory.o stdlib/string.o stdlib/bits.o mm/page_list.o mm/buddy.o mm/mm.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 grub.iso: kernel.elf iso/boot/grub/grub.cfg

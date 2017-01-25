@@ -2,7 +2,7 @@
 
 #include <runtime/types.h>
 #include <interrupt.h>
-#include <process.h>
+#include <thread.h>
 
 #define RETURN(x) do { frame->eax = (uint32_t)(x); return; } while (0)
 
@@ -33,8 +33,8 @@ static void do_add(interrupt_frame_t *frame, int a, int b)
 
 static void do_yield(interrupt_frame_t *frame)
 {
-    process_current()->ticks = 1;
-    process_irq_handler(IRQ_CLOCK, frame);
+    thread_current()->ticks = 1;
+    thread_irq_handler(IRQ_CLOCK, frame);
 }
 
 static void do_delay(interrupt_frame_t *frame, int x)

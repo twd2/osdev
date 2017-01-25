@@ -2,7 +2,7 @@
 
 #include <runtime/types.h>
 #include <stdlib/string.h>
-#include <process.h>
+#include <thread.h>
 
 static tty_t ttys[TTY_COUNT];
 tty_t *const default_tty = &ttys[0];
@@ -36,14 +36,15 @@ tty_t *tty_current_screen()
 
 tty_t *tty_current_process()
 {
+    // TODO: process or thread?
     if (current_tty)
     {
         return current_tty;
     }
-    process_t *current_process = process_current();
-    if (current_process)
+    thread_t *current_thread = thread_current();
+    if (current_thread)
     {
-        return current_process->tty;
+        return current_thread->tty;
     }
     else
     {

@@ -1,7 +1,6 @@
 #include <interrupt.h>
 #include <tty.h>
 #include <driver/pic8259a.h>
-#include <process.h>
 #include <syscall_impl.h>
 
 const char *const cpu_exception_strings[INTERRUPT_EXCEPTION_COUNT] =
