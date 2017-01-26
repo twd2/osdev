@@ -17,11 +17,13 @@ extern kmain
 extern prepare_tss_gdt_entry
 extern prepare_idt
 extern interrupt_handler
+extern _kernel_load_address
+extern _kernel_virtual_base
 
 MULTIBOOT_HEADER_MAGIC equ 0x1BADB002
 MULTIBOOT_HEADER_FLAGS equ 0b110 ; mem_*, mmap_*, vesa
 MULTIBOOT_HEADER_CHECKSUM equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
-MULTIBOOT_HEADER_MODE_TYPE equ 0 ; 0=graphics, 1=text
+MULTIBOOT_HEADER_MODE_TYPE equ 1 ; 0=graphics, 1=text
 MULTIBOOT_HEADER_WIDTH equ 800
 MULTIBOOT_HEADER_HEIGHT equ 600
 MULTIBOOT_HEADER_DEPTH equ 32
@@ -36,7 +38,7 @@ resb KERNEL_STACK_SIZE
 user_stack_base:
 resb KERNEL_STACK_SIZE
 
-section .text
+section .init32.text progbits alloc exec nowrite
 align 4
 bits 32
 
@@ -59,6 +61,7 @@ nop
 nop
 nop
 
+; at 0x1xxxxx
 _start:
   cli
 
@@ -68,6 +71,33 @@ _start:
   mov edi, eax
   mov esi, ebx
 
+  ; init paging
+  lea eax, [pd_ptr]
+  lea ebx, [_kernel_virtual_base]
+  sub eax, ebx
+  lea ecx, [pt0_ptr]
+  sub ecx, ebx
+  or dword [eax], ecx
+  or dword [eax + 768 * 4], ecx
+  lea ecx, [pt1_ptr]
+  sub ecx, ebx
+  or dword [eax + 1 * 4], ecx
+  or dword [eax + (768 + 1) * 4], ecx
+  mov cr3, eax ; cr3 = pd_ptr (this is virtual address) - _kernel_virtual_base
+
+  ; enable paging
+  mov eax, cr0
+  or eax, 0x80000000
+  mov cr0, eax
+
+  jmp _start_va
+
+section .text
+align 4
+bits 32
+
+; at 0xc01xxxxx
+_start_va:
   ; gdt
   lgdt [gdt32_reg]
   ; use new gdt
@@ -79,9 +109,19 @@ _start_kernel:
   mov es, ax
   mov fs, ax
   mov gs, ax
+  ; prepare kernel stack
   mov ss, ax
-  mov esp, kernel_stack_base + KERNEL_STACK_SIZE ; prepare kernel stack
+  mov esp, kernel_stack_base + KERNEL_STACK_SIZE
 
+  ; remove 0 ~ 8M-1 -> 0 ~ 8M-1
+  lea eax, [pd_ptr]
+  xor ebx, ebx
+  mov [eax], ebx
+  mov [eax + 1 * 4], ebx
+  lea ebx, [_kernel_virtual_base]
+  sub eax, ebx
+  mov cr3, eax
+  ; mov [0], eax test
   ; idt
   call prepare_idt
   lidt [idt_reg]
@@ -183,6 +223,33 @@ idt_length equ $ - idt_ptr
 idt_reg:
   dw idt_length - 1
   dd idt_ptr
+
+section .pd progbits alloc noexec write
+align 4
+
+%include "paging.inc"
+
+pd_ptr: ; page directory
+  ; 0 ~ 8M-1 -> 0 ~ 8M-1
+  dd 0 | PAGING_PXE_P | PAGING_PXE_RW
+  dd 0 | PAGING_PXE_P | PAGING_PXE_RW
+  times 766 dd 0
+  ; C0000000 ~ C0000000 + 8M-1 -> 0 ~ 8M-1
+  dd 0 | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
+  dd 0 | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US
+  times 254 dd 0
+
+%assign i 0
+pt0_ptr: ; page table 0
+%rep 1024
+  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
+  %assign i i + 1
+%endrep
+pt1_ptr: ; page table 1
+%rep 1024
+  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
+  %assign i i + 1
+%endrep
 
 ; global constants
 section .rodata

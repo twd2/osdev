@@ -2,6 +2,7 @@
 #include <tty.h>
 #include <driver/pic8259a.h>
 #include <syscall_impl.h>
+#include <mm/page_fault.h>
 
 const char *const cpu_exception_strings[INTERRUPT_EXCEPTION_COUNT] =
 {
@@ -69,6 +70,15 @@ void interrupt_handler(uint8_t vec, interrupt_frame_t frame)
         kprint(": ");
         kprint(cpu_exception_strings[vec]);
         kprint("\n");
+        if (vec == 14) // page fault
+        {
+            uintptr_t pfla = (uintptr_t)mm_page_fault_va();
+            kprint("-> page fault linear address=");
+            kprint_hex(pfla);
+            kprint(", flags=");
+            kprint_hex(frame.errorcode);
+            kprint("\n");
+        }
         kprint("-> errorcode=");
         kprint_hex(frame.errorcode);
         kprint(", frame=");

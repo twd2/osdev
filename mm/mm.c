@@ -9,9 +9,14 @@
 static bool mm_inited = false;
 
 // loader.asm
+extern uint8_t _kernel_load_address;
+extern uint8_t _kernel_virtual_base;
+void *const kernel_load_address = &_kernel_load_address;
+void *const kernel_virtual_base = &_kernel_virtual_base;
+
 extern uint8_t _end_of_kernel;
-void *palloc_mem_start = &_end_of_kernel;
-void *free_mem_start = &_end_of_kernel;
+void *palloc_mem_start = NULL;
+void *free_mem_start = NULL;
 void *free_mem_end = NULL; // [free_mem_start, free_mem_end)
 
 uint32_t bios_mem_map_count;
@@ -95,7 +100,11 @@ static void print_buddy(buddy_t *b)
 void init_mm(multiboot_info_t *mb_info)
 {
     copy_mem_map(mb_info);
+    palloc_mem_start = __PA(&_end_of_kernel);
+    free_mem_start = __PA(&_end_of_kernel);
     free_mem_end = (void *)((mb_info->mem_upper << 10) + 0x100000);
+
+    // TODO: paging: map [free_mem_start, free_mem_end)
 
     bucket_t *buckets = (bucket_t *)mm_palloc(BUCKET_COUNT * sizeof(bucket_t));
 
@@ -106,7 +115,8 @@ void init_mm(multiboot_info_t *mb_info)
     free_mem_start = mm_align(free_mem_start);
     buddy_init(&buddy, buckets, BUCKET_COUNT, nodes, node_count, PAGE_SIZE);
     buddy_init_pages(&buddy, free_mem_start, free_mem_end - free_mem_start);
-    // print_buddy(&buddy);
+    print_buddy(&buddy);
+    for (;;);
 }
 
 void *mm_alloc_pages(size_t count)

@@ -119,11 +119,11 @@ void print_multiboot_info(int mb_magic, multiboot_info_t *mb_info)
     kprint(" KiB, boot_device=");
     kprint_hex(mb_info->boot_device);
     kprint(", \n-> mmap_addr=");
-    kprint_hex(mb_info->mmap_addr);
+    kprint_hex((uintptr_t)__VA((void *)mb_info->mmap_addr));
     kprint(", mmap_length=");
     kprint_int(mb_info->mmap_length);
     kprint(" bytes,\n-> cmdline at ");
-    kprint_hex(mb_info->cmdline);
+    kprint_hex((uintptr_t)__VA((void *)mb_info->cmdline));
     kprint(", cmdline=\"");
     kprint((char *)__VA((void *)mb_info->cmdline));
     kprint("\"\n");

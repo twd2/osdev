@@ -15,9 +15,8 @@
 
 #define BIOS_MEM_MAP_MAX_COUNT 16
 
-// TODO: paging
-#define __VA(ptr) ((void *)((uintptr_t)(ptr) + 0))
-#define __PA(ptr) ((void *)((uintptr_t)(ptr) + 0))
+#define __VA(ptr) ((void *)((uintptr_t)(ptr) + (uintptr_t)(kernel_virtual_base)))
+#define __PA(ptr) ((void *)((uintptr_t)(ptr) - (uintptr_t)(kernel_virtual_base)))
 
 void *mm_align(void *ptr);
 void *mm_palloc(size_t size);
@@ -26,6 +25,8 @@ void init_mm(multiboot_info_t *mb_info);
 void *mm_alloc_pages(size_t count);
 void mm_free_pages(void *page);
 
+extern void *const kernel_load_address;
+extern void *const kernel_virtual_base;
 extern void *palloc_mem_start;
 extern void *free_mem_start;
 extern void *free_mem_end;
