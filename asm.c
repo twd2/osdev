@@ -44,7 +44,10 @@ inline bool spinlock_try_lock(spinlock_t *l)
 
 void spinlock_wait_and_lock(spinlock_t *l)
 {
-    while (!spinlock_try_lock(l)); // loop until we get the lock
+    while (!spinlock_try_lock(l)) // loop until we get the lock
+    {
+        asm volatile ("pause");
+    }
 }
 
 void spinlock_release(spinlock_t *l)
