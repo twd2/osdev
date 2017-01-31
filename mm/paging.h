@@ -68,6 +68,11 @@ typedef struct pml1
     pml1e_t entries[MM_PML1_MASK + 1];
 } pml1_t;
 
+#define MM_PAGING_DIRECT_MAP_MAX 0x20000000 // max 512MiB
+
+void mm_enable_page_global();
+void mm_load_pml4(void *pml4);
+void init_mm_paging();
 void mm_invalidate_tlb(void *va);
 
 #endif // _WDOS_KERNEL_MM_PAGING_H_

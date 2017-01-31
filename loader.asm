@@ -6,6 +6,11 @@ global idt_ptr
 global enter_ring3
 global get_eflags
 
+; paging
+global pd_ptr
+global pt0_ptr
+global pt1_ptr
+
 ; global constants
 global SELECTOR_KERNEL_CODE
 global SELECTOR_KERNEL_DATA
@@ -234,6 +239,7 @@ pd_ptr: ; page directory
   dd 0 | PAGING_PXE_P | PAGING_PXE_RW
   dd 0 | PAGING_PXE_P | PAGING_PXE_RW
   times 766 dd 0
+  ; 768 = 0xc0000000 / 4096 / 1024
   ; C0000000 ~ C0000000 + 8M-1 -> 0 ~ 8M-1
   dd 0 | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
   dd 0 | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US
@@ -242,12 +248,12 @@ pd_ptr: ; page directory
 %assign i 0
 pt0_ptr: ; page table 0
 %rep 1024
-  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
+  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_G | PAGING_PXE_US ; TODO
   %assign i i + 1
 %endrep
 pt1_ptr: ; page table 1
 %rep 1024
-  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_US ; TODO
+  dd (i << 12) | PAGING_PXE_P | PAGING_PXE_RW | PAGING_PXE_G | PAGING_PXE_US ; TODO
   %assign i i + 1
 %endrep
 

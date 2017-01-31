@@ -3,6 +3,7 @@
 #include <runtime/types.h>
 #include <multiboot.h>
 #include <boot.h>
+#include <mm/paging.h>
 #include <mm/buddy.h>
 #include <tty.h>
 
@@ -60,7 +61,7 @@ static inline void copy_mem_map(multiboot_info_t *mb_info)
             ++bios_mem_map_count;
         }
 
-        //next
+        // next
         mb_mmap = (multiboot_memory_map_t *)((uint8_t *)mb_mmap + mb_mmap->size +
                                              sizeof(mb_mmap->size));
     }
@@ -104,7 +105,8 @@ void init_mm(multiboot_info_t *mb_info)
     free_mem_start = __PA(&_end_of_kernel);
     free_mem_end = (void *)((mb_info->mem_upper << 10) + 0x100000);
 
-    // TODO: paging: map [free_mem_start, free_mem_end)
+    // paging: map [0, free_mem_end)
+    init_mm_paging();
 
     bucket_t *buckets = (bucket_t *)mm_palloc(BUCKET_COUNT * sizeof(bucket_t));
 
